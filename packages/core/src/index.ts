@@ -1,6 +1,7 @@
 export { createEnhancedCopy, extractElementContent, mountEnhancedCopy, sourceFromElement } from "./dom";
 export { copyEnhancedPrompt, writeClipboardText } from "./clipboard";
 export { destinationRequestUrl, sendEnhancedPrompt } from "./destinations";
+export { ENHANCED_COPY_ICON_SVG } from "./icon";
 export { ACTION_TASKS, DEFAULT_RENDER_OPTIONS, actionTask, normalizeRenderOptions, renderEnhancedCopy, renderEnhancedPrompt } from "./templates";
 export { showCopyFallback, showToast } from "./ui";
 export type {

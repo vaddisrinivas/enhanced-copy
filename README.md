@@ -6,6 +6,8 @@ Enhanced Copy adds source-aware, task-aware copy actions to docs, repos, blogs, 
 
 **Live demo:** [vaddisrinivas.github.io/enhanced-copy](https://vaddisrinivas.github.io/enhanced-copy/)
 
+![Enhanced Copy icon](docs/assets/enhanced-copy-icon.svg)
+
 [![Enhanced Copy demo video](docs/assets/enhanced-copy-demo-video.gif)](docs/assets/enhanced-copy-demo.mp4)
 
 **Watch the demo video:** [MP4 with voiceover](docs/assets/enhanced-copy-demo.mp4). Generated with [Framecraft](https://github.com/vaddisrinivas/framecraft).
@@ -90,6 +92,36 @@ The product wedge is the SDK. The extension is dogfood and distribution.
 - `@enhanced-copy/react`: `<EnhancedCopyButton />`.
 - `apps/demo`: public Enhanced Copy demo site.
 - `apps/extension`: Chromium MV3 extension using `activeTab`, context menus, popup, shortcut, BYOK destinations, and recent explicit Enhanced Copy items.
+
+## No-Code CDN Button
+
+Use this when you want a docs/blog integration without npm, build tooling, or framework code.
+
+```html
+<script
+  defer
+  src="https://vaddisrinivas.github.io/enhanced-copy/cdn/enhanced-copy.cdn.js"
+  data-enhanced-copy-button-label="Enhanced Copy">
+</script>
+```
+
+Then add `data-enhanced-copy` to blocks you want upgraded.
+
+Full guide: [docs/CDN.md](docs/CDN.md)
+
+## Recommended Stack
+
+Enhanced Copy should stay small. The maxed-out setup is:
+
+- CDN/SDK buttons for docs teams.
+- Chrome extension for arbitrary websites.
+- LiteLLM as the local/team model gateway.
+- Ollama for local models.
+- Maccy, PowerToys Advanced Paste, or CopyQ for clipboard history.
+- Android later via share-sheet/keyboard/PWA patterns, not background clipboard spying.
+
+Full stack guide: [docs/STACK.md](docs/STACK.md)  
+LiteLLM examples: [integrations](integrations)
 
 ## SDK Quickstart
 

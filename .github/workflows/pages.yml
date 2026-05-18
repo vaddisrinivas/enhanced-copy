@@ -30,6 +30,9 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Build CDN script
+        run: npm run build:cdn
+
       - name: Build demo
         run: npm run build -w apps/demo
         env:

@@ -70,6 +70,12 @@ mountEnhancedCopy({
   observe: true
 });`;
 
+const cdnCode = `<script
+  defer
+  src="https://vaddisrinivas.github.io/enhanced-copy/cdn/enhanced-copy.cdn.js"
+  data-enhanced-copy-button-label="Enhanced Copy">
+</script>`;
+
 export function App() {
   useEffect(() => {
     const controller = mountEnhancedCopy({
@@ -327,6 +333,30 @@ export function App() {
           <pre>
             <code>{destinationCode}</code>
           </pre>
+        </div>
+      </section>
+
+      <section className="api" aria-label="CDN and stack setup">
+        <div>
+          <p className="section-kicker">No-code install</p>
+          <h2>Serve the button from GitHub Pages.</h2>
+          <p>
+            Drop in one CDN script, mark blocks with data attributes, and let power users connect clipboard managers,
+            LiteLLM, Ollama, Chrome AI, or their team gateway.
+          </p>
+        </div>
+        <div className="code-grid">
+          <pre>
+            <code>{cdnCode}</code>
+          </pre>
+          <div className="stack-list">
+            <span>CDN button</span>
+            <span>Chrome extension</span>
+            <span>LiteLLM gateway</span>
+            <span>Ollama local models</span>
+            <span>Maccy / PowerToys / CopyQ</span>
+            <span>Android via share sheet later</span>
+          </div>
         </div>
       </section>
     </main>

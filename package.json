@@ -8,7 +8,8 @@
     "apps/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build:cdn && npm run build --workspaces --if-present",
+    "build:cdn": "node scripts/build-cdn.mjs",
     "dev": "npm run dev -w apps/demo",
     "test": "vitest run",
     "test:watch": "vitest",

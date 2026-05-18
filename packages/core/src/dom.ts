@@ -1,4 +1,5 @@
 import { copyEnhancedPrompt } from "./clipboard";
+import { ENHANCED_COPY_ICON_SVG } from "./icon";
 import type {
   CopyOptions,
   CopyResult,
@@ -76,7 +77,10 @@ export function mountEnhancedCopy(options: MountEnhancedCopyOptions = {}): Enhan
     button.type = "button";
     button.className = "enhanced-copy-button";
     button.title = "Copy enhanced text for AI or sharing";
-    button.textContent = labelFor(element, options, action);
+    button.style.display = "inline-flex";
+    button.style.alignItems = "center";
+    button.style.gap = "6px";
+    button.append(createIconElement(), document.createTextNode(labelFor(element, options, action)));
     button.addEventListener("click", () => {
       void copyFromElement(element);
     });
@@ -92,6 +96,22 @@ export function mountEnhancedCopy(options: MountEnhancedCopyOptions = {}): Enhan
       disposers.forEach((dispose) => dispose());
     }
   };
+}
+
+function createIconElement(): HTMLSpanElement {
+  const icon = document.createElement("span");
+  icon.className = "enhanced-copy-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.innerHTML = ENHANCED_COPY_ICON_SVG;
+  Object.assign(icon.style, {
+    display: "inline-flex",
+    width: "16px",
+    height: "16px",
+    flex: "0 0 auto"
+  });
+  icon.querySelector("svg")?.setAttribute("width", "16");
+  icon.querySelector("svg")?.setAttribute("height", "16");
+  return icon;
 }
 
 export function createEnhancedCopy(config: EnhancedCopyConfig = {}): EnhancedCopyController {

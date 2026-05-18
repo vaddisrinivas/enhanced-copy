@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   copyEnhancedPrompt,
+  ENHANCED_COPY_ICON_SVG,
   sendEnhancedPrompt,
   type CopyResult,
   type EnhancedCopyDestination,
@@ -93,6 +94,11 @@ export function EnhancedCopyButton(props: EnhancedCopyButtonProps) {
       data-enhanced-copy-react-button
       onClick={onClick}
     >
+      <span
+        className="enhanced-copy-icon"
+        aria-hidden="true"
+        dangerouslySetInnerHTML={{ __html: ENHANCED_COPY_ICON_SVG }}
+      />
       {copied ? "Enhanced copy ready" : label}
     </button>
   );
