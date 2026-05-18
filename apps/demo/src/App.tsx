@@ -16,11 +16,11 @@ const codeText = `async function loadUsers() {
 const issueText =
   "Bug: selected code snippets lose indentation when users paste raw docs into an AI chat. Add a Debug copy action that carries task, source URL, content type, and safety context.";
 
-const redditPost =
-  "I keep copying README chunks into ChatGPT and then typing the same wrapper again. Copy should carry the task, source URL, and selected content so paste targets get useful context immediately.";
+const communityPost =
+  "I keep copying docs into a model chat and then typing the same wrapper again. Copy should carry the task, source URL, and selected content so the next step gets useful context immediately.";
 
-const linkedInPost =
-  "Every docs page already has Copy. The AI-era version is not answer-here. It is copy with enough intent that the user can paste anywhere.";
+const launchPost =
+  "Every docs page already has Copy. The AI workflow version is not answer-here. It is copy with enough intent that the user can choose the next tool.";
 
 const rawCopy = `async function loadUsers() {
   const response = await fetch("/api/users");
@@ -90,11 +90,11 @@ export function App() {
     <main>
       <section className="hero" aria-labelledby="hero-title">
         <div className="hero-copy">
-          <p className="eyebrow">Enhanced Copy for AI-era docs, repos, and posts</p>
+          <p className="eyebrow">Enhanced Copy for docs, repos, and posts</p>
           <h1 id="hero-title">Copy should carry intent.</h1>
           <p className="lede">
-            Users already copy your docs into ChatGPT, Claude, Cursor, GitHub, Reddit, and LinkedIn.
-            Enhanced Copy turns that copy into source-aware, task-aware text they can paste anywhere.
+            Users already copy your docs into model chats, editors, issue trackers, and publishing tools.
+            Enhanced Copy turns that copy into source-aware, task-aware text for the next step.
           </p>
           <div className="hero-actions">
             <EnhancedCopyButton
@@ -115,9 +115,9 @@ export function App() {
             </EnhancedCopyButton>
             <EnhancedCopyButton
               className="electric"
-              content={linkedInPost}
+              content={launchPost}
               action="share"
-              source={{ title: "Enhanced Copy launch note", url: productUrl, label: "LinkedIn draft" }}
+              source={{ title: "Enhanced Copy launch note", url: productUrl, label: "Launch draft" }}
             >
               Share
             </EnhancedCopyButton>
@@ -150,7 +150,7 @@ export function App() {
           <div className="copy-rail">
             <strong>The magic moment</strong>
             <p>Same selected text. Better clipboard payload.</p>
-            <span>Paste into ChatGPT, Claude, Cursor, GitHub, Reddit, LinkedIn, or your own model.</span>
+            <span>Use it in a model chat, code editor, issue tracker, community post, or private gateway.</span>
           </div>
         </div>
       </section>
@@ -183,7 +183,7 @@ export function App() {
         </div>
         <div>
           <strong>AI surfaces stay fragmented</strong>
-          <p>The right paste target might be ChatGPT, Claude, Cursor, GitHub, Reddit, Slack, Ollama, or a private gateway.</p>
+          <p>The right next step might be a model chat, editor, issue tracker, team chat, local model, or private gateway.</p>
         </div>
       </section>
 
@@ -192,7 +192,7 @@ export function App() {
           <p className="section-kicker">SDK demo</p>
           <h2>Every copyable block can become an AI-ready action.</h2>
           <p>
-            Docs text, code, issue templates, Reddit posts, LinkedIn drafts, and support answers can each render
+            Docs text, code, issue templates, community posts, launch drafts, and support answers can each render
             a different enhanced-copy action while normal copy stays untouched.
           </p>
         </div>
@@ -246,16 +246,16 @@ export function App() {
 
           <article>
             <div className="panel-heading">
-              <span>Reddit post</span>
+              <span>Community post</span>
               <small>Share</small>
             </div>
             <p
               data-enhanced-copy="share"
-              data-enhanced-copy-title="Reddit launch draft"
-              data-enhanced-copy-url="https://reddit.com/r/webdev"
-              data-enhanced-copy-label="Reddit post"
+              data-enhanced-copy-title="Community launch draft"
+              data-enhanced-copy-url="https://community.example.com/thread/enhanced-copy"
+              data-enhanced-copy-label="Community post"
             >
-              {redditPost}
+              {communityPost}
             </p>
           </article>
         </div>
@@ -264,7 +264,7 @@ export function App() {
       <section className="extension" aria-label="Extension story">
         <div>
           <p className="section-kicker">Chrome extension</p>
-          <h2>Works on any website after the user selects text.</h2>
+          <h2>Works on arbitrary pages after explicit selection.</h2>
           <p>
             Context menu, popup, and shortcut all use activeTab. No persistent content script. No global copy hijack.
             Recent enhanced outputs behave like a tiny clipboard manager, but only for explicit Enhanced Copy actions.
@@ -303,7 +303,7 @@ export function App() {
         <div className="matrix">
           <div>
             <strong>Explain button</strong>
-            <p>Answers in place. Good for one site. Bad when the user wants Claude, Cursor, GitHub, or a private model.</p>
+            <p>Answers in place. Good for one site. Bad when the user wants a different model, editor, issue tracker, or private gateway.</p>
           </div>
           <div>
             <strong>Clipboard manager</strong>
@@ -338,7 +338,7 @@ export function App() {
 
       <section className="api" aria-label="CDN and stack setup">
         <div>
-          <p className="section-kicker">No-code install</p>
+          <p className="section-kicker">No-build install</p>
           <h2>Serve the button from GitHub Pages.</h2>
           <p>
             Drop in one CDN script, mark blocks with data attributes, and let power users connect clipboard managers,

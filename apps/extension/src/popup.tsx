@@ -9,6 +9,7 @@ import {
   DESTINATION_KINDS,
   clearRecentPrompts,
   deleteDestination,
+  destinationPermissionPattern,
   destinationFromForm,
   destinationLabel,
   getAllDestinations,
@@ -212,6 +213,19 @@ function Popup() {
       setStatus(networkError);
       return false;
     }
+
+    const origin = destinationPermissionPattern(destination);
+    if (!origin) return true;
+
+    const granted = await chrome.permissions.contains({ origins: [origin] });
+    if (granted) return true;
+
+    const allowed = await chrome.permissions.request({ origins: [origin] });
+    if (!allowed) {
+      setStatus(`Permission denied for ${origin}`);
+      return false;
+    }
+
     return true;
   }
 

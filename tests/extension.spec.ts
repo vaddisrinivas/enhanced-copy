@@ -28,7 +28,7 @@ test.describe("Enhanced Copy extension", () => {
     await context.close();
   });
 
-  test("does not inject persistent content scripts or request host permissions", async () => {
+  test("does not inject persistent scripts or require broad host permissions", async () => {
     const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent("serviceworker"));
     const manifest = await worker.evaluate(() => chrome.runtime.getManifest());
     const commands = await worker.evaluate(() => chrome.commands.getAll());
@@ -36,7 +36,9 @@ test.describe("Enhanced Copy extension", () => {
 
     expect(manifest.content_scripts).toBeUndefined();
     expect(manifest.host_permissions).toBeUndefined();
-    expect(manifest.optional_host_permissions).toBeUndefined();
+    expect(manifest.optional_host_permissions).toEqual(
+      expect.arrayContaining(["https://*/*", "http://localhost/*", "http://127.0.0.1/*"])
+    );
     expect(manifest.permissions).toEqual(expect.arrayContaining(["activeTab", "scripting", "clipboardWrite"]));
     expect(shortcut).toBeTruthy();
   });
@@ -100,7 +102,7 @@ test.describe("Enhanced Copy extension", () => {
 
   test("popup reports missing selection instead of copying whole page", async () => {
     const page = await context.newPage();
-    await page.goto("http://127.0.0.1:4173/sites/reddit.html");
+    await page.goto("http://127.0.0.1:4173/sites/community.html");
 
     const popup = await context.newPage();
     await popup.addInitScript(() => {
@@ -122,7 +124,7 @@ test.describe("Enhanced Copy extension", () => {
     await expect(popup.getByRole("button", { name: "Pick Model First" })).toBeDisabled();
   });
 
-  test("popup saves a BYOK webhook destination and asks it", async () => {
+  test("popup saves a user-provided webhook destination and asks it", async () => {
     const popup = await context.newPage();
     await popup.addInitScript(() => {
       Object.defineProperty(chrome.runtime, "sendMessage", {
@@ -136,6 +138,20 @@ test.describe("Enhanced Copy extension", () => {
             return { ok: true, answer: "test ok", prompt: "test prompt", destination: "webhook" };
           }
           return { ok: true, answer: "webhook answer", text: "prompt text", destination: "webhook" };
+        }
+      });
+      Object.defineProperty(chrome.permissions, "contains", {
+        configurable: true,
+        value: async () => false
+      });
+      Object.defineProperty(chrome.permissions, "request", {
+        configurable: true,
+        value: async (permissions: unknown) => {
+          (window as typeof window & { __enhancedCopyPermissions?: unknown[] }).__enhancedCopyPermissions = [
+            ...((window as typeof window & { __enhancedCopyPermissions?: unknown[] }).__enhancedCopyPermissions || []),
+            permissions
+          ];
+          return true;
         }
       });
     });
@@ -165,5 +181,9 @@ test.describe("Enhanced Copy extension", () => {
         destinationId: expect.stringMatching(/^dest_/)
       })
     );
+    const permissions = await popup.evaluate(
+      () => (window as typeof window & { __enhancedCopyPermissions?: unknown[] }).__enhancedCopyPermissions
+    );
+    expect(permissions).toContainEqual({ origins: ["https://api.example.com/*"] });
   });
 });

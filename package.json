@@ -2,6 +2,7 @@
   "name": "enhanced-copy-monorepo",
   "private": true,
   "version": "0.1.0",
+  "license": "MIT",
   "type": "module",
   "workspaces": [
     "packages/*",
@@ -10,6 +11,7 @@
   "scripts": {
     "build": "npm run build:cdn && npm run build --workspaces --if-present",
     "build:cdn": "node scripts/build-cdn.mjs",
+    "package:extension": "npm run build -w apps/extension && node scripts/package-extension.mjs",
     "dev": "npm run dev -w apps/demo",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -1,6 +1,6 @@
 # CDN Button
 
-Use this when you want Enhanced Copy without an npm install, build step, or framework integration.
+Use this when you want Enhanced Copy without an npm install, build step, or framework integration. You still mark the content blocks you want upgraded.
 
 ## One Script
 
@@ -31,7 +31,7 @@ fetch("/api/users")
 </pre>
 ```
 
-That is the default no-code install path for docs/blogs/product pages.
+That is the default no-build-step install path for docs/blogs/product pages.
 
 ## Script Options
 

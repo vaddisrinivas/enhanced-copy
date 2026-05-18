@@ -5,7 +5,7 @@ services:
     ports:
       - "4000:4000"
     environment:
-      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-local-dev-change-me}
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-local-dev-change-me}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
       - ./config.example.yaml:/app/config.yaml:ro

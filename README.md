@@ -1,8 +1,8 @@
 # Enhanced Copy
 
-Copy infrastructure for the AI era.
+Source-aware copy buttons for AI workflows.
 
-Enhanced Copy adds source-aware, task-aware copy actions to docs, repos, blogs, code blocks, issue templates, and social posts. It feels like an **Explain** button, but the output is portable: the user can paste it into ChatGPT, Claude, Cursor, GitHub, Reddit, LinkedIn, Slack, Ollama, or a private model gateway.
+Enhanced Copy adds explicit copy actions to docs, repos, blogs, code blocks, issue templates, and social posts. It feels like an **Explain** button, but the output is portable: selected content is copied with source, task, content type, and safety context for the user's next AI step.
 
 **Live demo:** [vaddisrinivas.github.io/enhanced-copy](https://vaddisrinivas.github.io/enhanced-copy/)
 
@@ -22,7 +22,7 @@ Raw copy loses:
 - whether the content is docs, code, issue text, or a post
 - the user intent: explain, debug, summarize, ask, or share
 - safety framing that tells the model copied content is quoted source, not instructions
-- the destination choice: clipboard, local model, Chrome AI, webhook, or BYOK API
+- the destination choice: clipboard, local model, Chrome AI, webhook, or API gateway
 
 So users paste a naked snippet, then hand-type the same wrapper again:
 
@@ -54,7 +54,7 @@ async function loadUsers() { ... }
 ```
 ````
 
-## World-Class Demo
+## Product Demo
 
 The product demo is about Enhanced Copy itself. Framecraft is only the production tool used to render the video.
 
@@ -78,7 +78,7 @@ Enhanced Copy is not just another browser bubble.
 
 | Tool shape | What it does | What it misses |
 | --- | --- | --- |
-| Explain button | Answers inside one site | User cannot choose ChatGPT, Claude, Cursor, GitHub, Reddit, or a private model |
+| Explain button | Answers inside one site | User cannot choose a different model, editor, issue tracker, or publishing surface |
 | Clipboard manager | Stores copy history | Does not add task, source, content type, or safety boundary |
 | Prompt library | Stores reusable templates | Still makes users manually paste content and stitch context together |
 | Browser bubble | Adds UI chrome everywhere | Usually becomes the product instead of the infrastructure |
@@ -88,14 +88,14 @@ The product wedge is the SDK. The extension is dogfood and distribution.
 
 ## Packages
 
-- `@enhanced-copy/core`: prompt renderer, clipboard helper, DOM SDK, destination API.
-- `@enhanced-copy/react`: `<EnhancedCopyButton />`.
+- `@enhanced-copy/core`: prompt renderer, clipboard helper, DOM SDK, destination API. Local workspace package; npm publish is not done yet.
+- `@enhanced-copy/react`: `<EnhancedCopyButton />`. Local workspace package; npm publish is not done yet.
 - `apps/demo`: public Enhanced Copy demo site.
-- `apps/extension`: Chromium MV3 extension using `activeTab`, context menus, popup, shortcut, BYOK destinations, and recent explicit Enhanced Copy items.
+- `apps/extension`: Chromium MV3 extension using `activeTab`, context menus, popup, shortcut, optional model destinations, and recent explicit Enhanced Copy items.
 
-## No-Code CDN Button
+## No-Build CDN Button
 
-Use this when you want a docs/blog integration without npm, build tooling, or framework code.
+Use this when you want a docs/blog integration without npm or build tooling.
 
 ```html
 <script
@@ -124,6 +124,8 @@ Full stack guide: [docs/STACK.md](docs/STACK.md)
 LiteLLM examples: [integrations](integrations)
 
 ## SDK Quickstart
+
+Today, the fastest public install path is the CDN script above. The TypeScript packages are ready in this repo but are not published to npm yet.
 
 Add attributes:
 
@@ -205,22 +207,23 @@ Supported destinations:
 
 The extension is intentionally boring where it should be boring.
 
-- No `<all_urls>` host permission.
+- No required host permission.
+- Optional host permissions are requested per model/API destination before network calls.
 - No persistent content script.
 - No background normal-copy capture.
 - Uses `activeTab`, `scripting`, context menus, popup, and one shortcut.
 - Normal copy stays normal.
-- API keys are BYOK and session-only via `chrome.storage.session`.
+- API keys are user-provided and session-only via `chrome.storage.session`.
 - Destination URLs must be HTTPS, except localhost HTTP for Ollama and local gateways.
 - Recent history stores only explicit Enhanced Copy outputs.
 
-Load unpacked:
+Install the extension from the release ZIP, or build it locally and load unpacked:
 
 ```bash
-npm run build -w apps/extension
+npm run package:extension
 ```
 
-Then load `apps/extension/dist` in Chromium.
+Release ZIPs are attached to GitHub releases. For local builds, load `apps/extension/dist` in Chromium.
 
 ## Development
 
@@ -243,8 +246,8 @@ The Vite demo serves:
 
 - `/` - Enhanced Copy demo
 - `/sites/github.html`
-- `/sites/reddit.html`
-- `/sites/linkedin.html`
+- `/sites/community.html`
+- `/sites/launch.html`
 
 ## Design Principles
 
@@ -252,7 +255,7 @@ The Vite demo serves:
 - Treat prompt generation as infrastructure, not the whole product.
 - Keep normal copy untouched.
 - Let docs teams add value with one attribute.
-- Let power users bring Chrome AI, Ollama, webhooks, or BYOK model APIs.
+- Let power users bring Chrome AI, Ollama, webhooks, or their own model APIs.
 - Store as little as possible.
 
 ## Status

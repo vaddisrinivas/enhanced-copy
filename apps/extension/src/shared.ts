@@ -159,8 +159,8 @@ export function destinationPermissionPattern(destination: EnhancedCopyDestinatio
   if (!requestUrl) return undefined;
   try {
     const url = new URL(requestUrl);
-    if (url.protocol === "https:") return `${url.origin}/*`;
-    if (url.protocol === "http:" && isLocalhost(url.hostname)) return `${url.origin}/*`;
+    if (url.protocol === "https:") return `${url.protocol}//${url.hostname}/*`;
+    if (url.protocol === "http:" && isLocalhost(url.hostname)) return `${url.protocol}//${url.hostname}/*`;
     return undefined;
   } catch {
     return undefined;

@@ -4,3 +4,4 @@ playwright-report/
 test-results/
 .vite/
 .DS_Store
+artifacts/

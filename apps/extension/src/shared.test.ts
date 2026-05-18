@@ -9,7 +9,7 @@ describe("extension settings", () => {
     expect(DEFAULT_EXTENSION_SETTINGS.defaultDestinationId).toBe("clipboard");
   });
 
-  it("builds BYOK destinations from form fields", () => {
+  it("builds user-provided destinations from form fields", () => {
     expect(
       destinationFromForm({
         name: "Local Ollama",
@@ -31,13 +31,13 @@ describe("extension settings", () => {
         name: "LiteLLM",
         type: "openai-compatible",
         apiUrl: "https://llm.example.com/v1",
-        apiKey: "sk-test",
+        apiKey: "test-api-key",
         model: "gpt-test"
       })
     ).toMatchObject({
       type: "openai-compatible",
       baseUrl: "https://llm.example.com/v1",
-      apiKey: "sk-test",
+      apiKey: "test-api-key",
       model: "gpt-test"
     });
   });
@@ -48,9 +48,7 @@ describe("extension settings", () => {
     expect(destinationPermissionPattern({ type: "webhook", url: "https://api.example.com/path", apiKey: "x" })).toBe(
       "https://api.example.com/*"
     );
-    expect(destinationPermissionPattern({ type: "ollama", baseUrl: "http://127.0.0.1:11434", model: "gemma3" })).toBe(
-      "http://127.0.0.1:11434/*"
-    );
+    expect(destinationPermissionPattern({ type: "ollama", baseUrl: "http://127.0.0.1:11434", model: "gemma3" })).toBe("http://127.0.0.1/*");
     expect(destinationPermissionPattern({ type: "webhook", url: "http://api.example.com/path", apiKey: "x" })).toBeUndefined();
     expect(validateDestinationNetwork({ type: "webhook", url: "http://api.example.com/path", apiKey: "x" })).toContain("HTTPS");
   });

@@ -11,7 +11,7 @@ Enhanced Copy owns:
 - source-aware prompt rendering
 - explicit copy actions
 - extension action surface
-- BYOK destination configuration
+- user-provided destination configuration
 - docs-team SDK and CDN button
 
 Enhanced Copy should not own:
@@ -28,7 +28,7 @@ Enhanced Copy should not own:
 | Profile | Who | Install |
 | --- | --- | --- |
 | Docs Lite | docs teams, blogs, component libraries | CDN script + `data-enhanced-copy` attributes |
-| DevRel | docs teams with npm pipeline | `@enhanced-copy/core` or `@enhanced-copy/react` |
+| DevRel | docs teams with npm pipeline | local workspace packages today; npm publish later |
 | Power User | developers on arbitrary sites | Chrome extension + local clipboard manager |
 | Local AI | privacy-first developers | Chrome extension + Ollama + LiteLLM proxy |
 | Team Gateway | companies | extension/API URL pointed at internal LiteLLM or webhook |
@@ -86,8 +86,8 @@ Extension: Enhanced Copy
 Local model: Ollama
 Model gateway: LiteLLM
 Clipboard manager: Maccy, PowerToys Advanced Paste, or CopyQ
-Editor: Cursor / VS Code / Zed
-Paste targets: ChatGPT, Claude, GitHub issues, Reddit, LinkedIn, Slack
+Editor: your code editor
+Paste targets: model chats, code editors, issue trackers, community posts, team chat
 ```
 
 ## Team Setup

@@ -20,13 +20,13 @@
     },
     {
       "custom_html": "docs/framecraft/enhanced-copy-demo/04-extension.html",
-      "narration": "Developers get the same workflow on any website through the Chrome extension, without background clipboard capture.",
+      "narration": "Developers get the same workflow on arbitrary pages through the Chrome extension, without background clipboard capture.",
       "voice": "andrew",
       "duration": 0
     },
     {
       "custom_html": "docs/framecraft/enhanced-copy-demo/05-destinations.html",
-      "narration": "Clipboard by default. Chrome AI, Ollama, webhooks, and bring your own model APIs when the user chooses.",
+      "narration": "Clipboard by default. Chrome AI, Ollama, webhooks, and user-provided model APIs when the user chooses.",
       "voice": "andrew",
       "duration": 0
     },

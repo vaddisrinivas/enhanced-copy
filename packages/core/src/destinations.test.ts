@@ -61,7 +61,7 @@ describe("sendEnhancedPrompt", () => {
       destination: {
         type: "openai-compatible",
         baseUrl: "https://api.example.com/v1",
-        apiKey: "sk-test",
+        apiKey: "test-api-key",
         model: "gpt-test"
       },
       fetch: fetcher
@@ -71,7 +71,7 @@ describe("sendEnhancedPrompt", () => {
     expect(fetcher).toHaveBeenCalledWith(
       "https://api.example.com/v1/chat/completions",
       expect.objectContaining({
-        headers: expect.objectContaining({ Authorization: "Bearer sk-test" })
+        headers: expect.objectContaining({ Authorization: "Bearer test-api-key" })
       })
     );
   });
@@ -164,7 +164,7 @@ describe("sendEnhancedPrompt", () => {
   it("keeps status and raw payload on failed HTTP requests", async () => {
     const result = await sendEnhancedPrompt({
       content: "fail",
-      destination: { type: "openai-compatible", baseUrl: "https://api.example.com/v1", apiKey: "sk", model: "gpt" },
+      destination: { type: "openai-compatible", baseUrl: "https://api.example.com/v1", apiKey: "test-api-key", model: "gpt" },
       fetch: vi.fn(async () => jsonResponse({ error: { message: "bad key" } }, 401))
     });
 

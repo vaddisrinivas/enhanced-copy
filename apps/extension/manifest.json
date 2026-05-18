@@ -2,8 +2,9 @@
   "manifest_version": 3,
   "name": "Enhanced Copy",
   "version": "0.1.0",
-  "description": "Copy AI-ready prompts with source and task, or send selected text to your chosen model.",
+  "description": "Copy selected text with source and task context, or send it to a user-configured model.",
   "permissions": ["contextMenus", "storage", "activeTab", "scripting", "clipboardWrite"],
+  "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
