@@ -4,18 +4,10 @@
   "version": "0.1.0",
   "description": "Copy upgraded text with source, intent, and formatting for AI tools or sharing.",
   "permissions": ["contextMenus", "storage", "activeTab", "scripting", "clipboardWrite"],
-  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_idle"
-    }
-  ],
   "action": {
     "default_title": "Enhanced Copy",
     "default_popup": "popup.html"
@@ -23,8 +15,8 @@
   "commands": {
     "enhanced-copy-selection": {
       "suggested_key": {
-        "default": "Ctrl+Shift+C",
-        "mac": "Command+Shift+C"
+        "default": "Alt+Shift+C",
+        "mac": "Alt+Shift+C"
       },
       "description": "Copy selected text with Enhanced Copy"
     }

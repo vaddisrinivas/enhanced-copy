@@ -7,29 +7,27 @@ test.beforeEach(async ({ context, page }) => {
   await page.goto("/");
 });
 
-test("SDK button copies exact enhanced explain text", async ({ page }) => {
+test("SDK button copies structured enhanced prompt", async ({ page }) => {
   await page.locator(".enhanced-copy-button", { hasText: "Explain" }).first().click();
   const text = await page.evaluate(() => navigator.clipboard.readText());
 
-  expect(text).toContain("I copied this from Enhanced Copy Demo at http://127.0.0.1:4173/.");
-  expect(text).toContain("Task: Explain this clearly and help me use it.");
-  expect(text).toContain("Enhanced Copy adds source, intent, and selected content");
+  expect(text).toContain("## Source");
+  expect(text).toContain("## Task\nExplain this clearly and help me use it.");
+  expect(text).toContain("## Copied Content");
+  expect(text).toContain("Enhanced Copy is a drop-in SDK");
 });
 
-test("shortcut copies enhanced text when enabled", async ({ page }) => {
-  await page.getByText("Enhanced Copy adds source").selectText();
-  await page.keyboard.press(process.platform === "darwin" ? "Meta+Shift+C" : "Control+Shift+C");
-  const text = await page.evaluate(() => navigator.clipboard.readText());
-
-  expect(text).toContain("Task: Explain this clearly and help me use it.");
-  expect(text).toContain("Enhanced Copy adds source");
-});
-
-test("override mode visibly marks normal copy as enhanced in demo", async ({ page }) => {
-  await expect(page.locator("[data-enhanced-copy-override='enabled']")).toHaveCount(1);
-  await page.getByText("Bug: Cmd+Shift+C works").selectText();
+test("normal copy remains normal and not enhanced", async ({ page }) => {
+  await page.getByText("Enhanced Copy is a drop-in SDK").selectText();
   await page.keyboard.press(process.platform === "darwin" ? "Meta+C" : "Control+C");
   const text = await page.evaluate(() => navigator.clipboard.readText());
 
-  expect(text).toContain("Task: Summarize the key points");
+  expect(text).toContain("Enhanced Copy is a drop-in SDK");
+  expect(text).not.toContain("## Task");
+});
+
+test("demo renders SDK-first positioning", async ({ page }) => {
+  await expect(page.getByRole("heading", { name: "Add AI-ready copy buttons in 5 minutes." })).toBeVisible();
+  await expect(page.getByText("No background capture")).toBeVisible();
+  await expect(page.locator("[data-enhanced-copy]")).toHaveCount(4);
 });

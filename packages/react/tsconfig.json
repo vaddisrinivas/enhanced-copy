@@ -11,5 +11,6 @@
       "@enhanced-copy/core": ["../core/dist/index.d.ts"]
     }
   },
-  "include": ["src/**/*.tsx", "src/**/*.ts"]
+  "include": ["src/**/*.tsx", "src/**/*.ts"],
+  "exclude": ["src/**/*.test.tsx", "src/**/*.test.ts"]
 }

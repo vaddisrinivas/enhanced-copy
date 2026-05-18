@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createEnhancedCopy } from "./dom";
+import { extractElementContent, mountEnhancedCopy } from "./dom";
 
-describe("createEnhancedCopy", () => {
+describe("mountEnhancedCopy", () => {
   beforeEach(() => {
     document.body.innerHTML = "";
     document.title = "Demo Page";
@@ -17,59 +17,48 @@ describe("createEnhancedCopy", () => {
     vi.restoreAllMocks();
   });
 
-  it("adds action buttons for data-enhanced-copy blocks", async () => {
+  it("adds explicit action buttons for data-enhanced-copy blocks", async () => {
     document.body.innerHTML = `<p data-enhanced-copy="debug">const ok = false;</p>`;
-    createEnhancedCopy({ mode: "button", action: "explain" });
+    mountEnhancedCopy({ action: "explain" });
 
     const button = document.querySelector<HTMLButtonElement>(".enhanced-copy-button");
     expect(button?.textContent).toBe("Debug");
     button?.click();
 
     await vi.waitFor(() => {
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        expect.stringContaining("Task: Debug this. Identify the likely issue")
-      );
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining("## Task\nDebug this."));
     });
   });
 
-  it("copies with the shortcut only when shortcut mode is enabled", async () => {
-    document.body.innerHTML = `<p data-enhanced-copy="explain">Shortcut content</p>`;
-    createEnhancedCopy({ mode: "shortcut", action: "explain" });
-
-    document.dispatchEvent(
-      new KeyboardEvent("keydown", {
-        key: "c",
-        ctrlKey: true,
-        shiftKey: true,
-        bubbles: true
-      })
-    );
-
-    await vi.waitFor(() => {
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining("Shortcut content"));
-    });
-  });
-
-  it("does not override normal copy when override mode is disabled", () => {
+  it("does not intercept normal copy", () => {
     document.body.innerHTML = `<p data-enhanced-copy="explain">Normal copy</p>`;
-    createEnhancedCopy({ mode: "shortcut", action: "explain" });
+    mountEnhancedCopy();
     const event = new Event("copy", { bubbles: true, cancelable: true });
 
     document.dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(false);
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
   });
 
-  it("overrides normal copy when override mode is enabled", () => {
-    document.body.innerHTML = `<p data-enhanced-copy="explain">Override copy</p>`;
-    createEnhancedCopy({ mode: "override-copy", action: "explain" });
-    const clipboardData = { setData: vi.fn() };
-    const event = new Event("copy", { bubbles: true, cancelable: true }) as ClipboardEvent;
-    Object.defineProperty(event, "clipboardData", { value: clipboardData });
+  it("preserves useful markdown from links and code", () => {
+    document.body.innerHTML = `<article><h2>Title</h2><p>Read <a href="/docs">docs</a></p><ul><li>One</li></ul></article>`;
+    expect(extractElementContent(document.querySelector("article")!)).toContain("[docs](/docs)");
+    expect(extractElementContent(document.querySelector("article")!)).toContain("- One");
 
-    document.dispatchEvent(event);
+    document.body.innerHTML = `<pre><code class="language-ts">const x = 1;\nconst y = 2;</code></pre>`;
+    expect(extractElementContent(document.querySelector("pre")!)).toBe("const x = 1;\nconst y = 2;");
+  });
 
-    expect(event.defaultPrevented).toBe(true);
-    expect(clipboardData.setData).toHaveBeenCalledWith("text/plain", expect.stringContaining("Override copy"));
+  it("observes late-added SDK blocks for SPAs", () => {
+    mountEnhancedCopy();
+    const paragraph = document.createElement("p");
+    paragraph.setAttribute("data-enhanced-copy", "summarize");
+    paragraph.textContent = "Late content";
+    document.body.append(paragraph);
+
+    return vi.waitFor(() => {
+      expect(document.querySelector(".enhanced-copy-button")?.textContent).toBe("Summarize");
+    });
   });
 });

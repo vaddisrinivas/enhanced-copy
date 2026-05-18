@@ -1,59 +1,86 @@
 import { useMemo, useState } from "react";
 import {
-  renderEnhancedCopy,
-  writeClipboardText,
-  type EnhancedCopyAction,
-  type EnhancedCopyConfig
+  copyEnhancedPrompt,
+  renderEnhancedPrompt,
+  type CopyResult,
+  type PromptAction,
+  type RenderOptions,
+  type SourceContext
 } from "@enhanced-copy/core";
 
-export type EnhancedCopyButtonProps = Partial<EnhancedCopyConfig> & {
+export type EnhancedCopyButtonProps = RenderOptions & {
   content: string;
+  source?: SourceContext;
   title?: string;
   url?: string;
-  action?: EnhancedCopyAction;
+  action?: PromptAction;
   className?: string;
   children?: React.ReactNode;
-  onCopied?: (text: string) => void;
-  onError?: (error: unknown, text: string) => void;
+  onCopied?: (result: CopyResult) => void;
+  onError?: (result: CopyResult) => void;
 };
 
 export function EnhancedCopyButton(props: EnhancedCopyButtonProps) {
   const [copied, setCopied] = useState(false);
-  const label = props.children ?? props.buttonLabel ?? labelForAction(props.action ?? "explain");
-  const title = props.title ?? (typeof document !== "undefined" ? document.title : "");
-  const url = props.url ?? (typeof window !== "undefined" ? window.location.href : "");
+  const label = props.children ?? labelForAction(props.action ?? "explain");
+  const source = {
+    title: props.title ?? props.source?.title ?? (typeof document !== "undefined" ? document.title : ""),
+    url: props.url ?? props.source?.url ?? (typeof window !== "undefined" ? window.location.href : ""),
+    ...props.source
+  };
   const text = useMemo(
     () =>
-      renderEnhancedCopy({
-        action: props.action ?? "explain",
-        customTemplate: props.customTemplate,
-        includeSelection: props.includeSelection,
-        includeSourceUrl: props.includeSourceUrl,
-        includeTitle: props.includeTitle,
-        selection: props.content,
-        title,
-        url
+      renderEnhancedPrompt({
+        content: props.content,
+        source,
+        options: {
+          action: props.action ?? "explain",
+          customTask: props.customTask,
+          includeSafetyNote: props.includeSafetyNote,
+          includeSourceUrl: props.includeSourceUrl,
+          includeTitle: props.includeTitle,
+          maxChars: props.maxChars,
+          question: props.question
+        }
       }),
     [
       props.action,
       props.content,
-      props.customTemplate,
-      props.includeSelection,
+      props.customTask,
+      props.includeSafetyNote,
       props.includeSourceUrl,
       props.includeTitle,
-      title,
-      url
+      props.maxChars,
+      props.question,
+      source.title,
+      source.url,
+      source.label,
+      source.language,
+      source.contentType
     ]
   );
 
   async function onClick() {
-    try {
-      await writeClipboardText(text);
+    const result = await copyEnhancedPrompt({
+      content: props.content,
+      source,
+      options: {
+        action: props.action ?? "explain",
+        customTask: props.customTask,
+        includeSafetyNote: props.includeSafetyNote,
+        includeSourceUrl: props.includeSourceUrl,
+        includeTitle: props.includeTitle,
+        maxChars: props.maxChars,
+        question: props.question
+      }
+    });
+
+    if (result.ok) {
       setCopied(true);
-      props.onCopied?.(text);
+      props.onCopied?.(result);
       window.setTimeout(() => setCopied(false), 1400);
-    } catch (error) {
-      props.onError?.(error, text);
+    } else {
+      props.onError?.(result);
     }
   }
 
@@ -71,7 +98,7 @@ export function EnhancedCopyButton(props: EnhancedCopyButtonProps) {
   );
 }
 
-function labelForAction(action: EnhancedCopyAction): string {
+function labelForAction(action: PromptAction): string {
   if (action === "explain") return "Explain";
   if (action === "debug") return "Debug";
   if (action === "summarize") return "Summarize";

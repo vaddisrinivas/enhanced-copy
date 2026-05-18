@@ -1,52 +1,84 @@
 # Enhanced Copy
 
-Enhanced Copy upgrades copied content with source, intent, formatting, and local clipboard history so it can be pasted into ChatGPT, Claude, Cursor, GitHub, Reddit, LinkedIn, or any other text surface.
+Drop-in SDK for adding AI-ready copy buttons to docs, code blocks, support articles, changelogs, and issue templates.
 
-V1 has no backend and makes no model calls. It only renders enhanced clipboard text.
+Enhanced Copy does **not** answer in-place and does **not** watch the clipboard. It renders a structured prompt and writes it to the clipboard only after an explicit user action.
+
+## Product Wedge
+
+Add **Explain / Debug / Summarize / Ask AI / Share** copy buttons to any content block in minutes.
+
+```html
+<p data-enhanced-copy="explain">
+  Your docs content here.
+</p>
+```
+
+```ts
+import { mountEnhancedCopy } from "@enhanced-copy/core";
+
+mountEnhancedCopy();
+```
 
 ## Packages
 
-- `@enhanced-copy/core`: renderer, vanilla SDK, clipboard UI fallback.
+- `@enhanced-copy/core`: prompt renderer, clipboard copy helper, explicit SDK mount.
 - `@enhanced-copy/react`: React button wrapper.
-- `apps/demo`: Vite demo site.
-- `apps/extension`: Chromium extension with selection bubble, context menu, shortcuts, opt-in copy override, and local clipboard manager.
+- `apps/demo`: SDK-first demo site.
+- `apps/extension`: optional Chromium dogfood extension using `activeTab`; no persistent content script.
 
-## Quick Start
-
-```bash
-npm install
-npm run build
-npm run test
-npm run dev
-```
-
-## SDK
+## Core API
 
 ```ts
-import { createEnhancedCopy } from "@enhanced-copy/core";
+import { copyEnhancedPrompt, renderEnhancedPrompt } from "@enhanced-copy/core";
 
-createEnhancedCopy({
-  mode: "all",
-  action: "explain",
-  includeTitle: true,
-  includeSourceUrl: true
+const text = renderEnhancedPrompt({
+  content: "fetch('/api/users')",
+  source: {
+    title: "Fetch docs",
+    url: "https://example.com/docs",
+    contentType: "code",
+    language: "ts"
+  },
+  options: { action: "debug" }
 });
+
+await copyEnhancedPrompt({ content: "Explain this", options: { action: "explain" } });
 ```
 
-Any element with `data-enhanced-copy` gets an Enhanced Copy affordance:
+Rendered prompts include:
 
-```html
-<pre data-enhanced-copy="debug">...</pre>
-```
+- source block
+- task block
+- fenced copied content
+- max character truncation
+- prompt-injection safety note
 
 ## Extension
 
-Build the extension:
+The extension is not the product. It is a reference/dogfood surface.
+
+- Uses `activeTab` + `scripting`.
+- No `<all_urls>` host permission.
+- No persistent content script.
+- No background normal-copy capture.
+- Copies only selected text after popup/context-menu/shortcut action.
+- Shortcut uses `Alt+Shift+C` because Chromium leaves `Command+Shift+C` unassigned in common dev-tool conflicts.
+
+Build and load unpacked:
 
 ```bash
 npm run build -w apps/extension
 ```
 
-Load `apps/extension/dist` as an unpacked Chromium extension.
+Load `apps/extension/dist` in Chromium.
 
-The extension stores history locally in Chrome storage. It captures normal copy events on regular webpages when enabled, but Chrome does not allow content scripts on browser-internal pages like `chrome://` or the Chrome Web Store.
+## Development
+
+```bash
+npm install
+npm run build
+npm run test
+npm run test:e2e
+npm run dev
+```

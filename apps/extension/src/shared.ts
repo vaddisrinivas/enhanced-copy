@@ -1,28 +1,19 @@
-import type { EnhancedCopyAction, EnhancedCopyConfig } from "@enhanced-copy/core";
+import type { PromptAction, RenderOptions } from "@enhanced-copy/core";
 
-export type ExtensionSettings = EnhancedCopyConfig & {
-  capturePlainCopies: boolean;
-  historyLimit: number;
-  redactLikelySecrets: boolean;
-  showSelectionBubble: boolean;
-  showOverrideBadge: boolean;
+export type ExtensionSettings = RenderOptions & {
+  rememberRecentPrompts: boolean;
 };
 
 export const DEFAULT_EXTENSION_SETTINGS: ExtensionSettings = {
-  mode: "shortcut",
   action: "explain",
   includeSourceUrl: true,
   includeTitle: true,
-  includeSelection: true,
-  buttonLabel: "Enhanced Copy",
-  capturePlainCopies: true,
-  historyLimit: 100,
-  redactLikelySecrets: true,
-  showSelectionBubble: true,
-  showOverrideBadge: true
+  includeSafetyNote: true,
+  maxChars: 12_000,
+  rememberRecentPrompts: false
 };
 
-export const ACTIONS: Array<{ action: EnhancedCopyAction; label: string }> = [
+export const ACTIONS: Array<{ action: PromptAction; label: string }> = [
   { action: "explain", label: "Explain" },
   { action: "debug", label: "Debug" },
   { action: "summarize", label: "Summarize" },
@@ -37,8 +28,4 @@ export async function getSettings(): Promise<ExtensionSettings> {
 
 export async function saveSettings(settings: Partial<ExtensionSettings>): Promise<void> {
   await chrome.storage.local.set(settings);
-}
-
-export function isOverrideMode(mode: ExtensionSettings["mode"]): boolean {
-  return mode === "override-copy" || mode === "all";
 }

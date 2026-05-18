@@ -1,6 +1,4 @@
-export type EnhancedCopyMode = "button" | "shortcut" | "override-copy" | "all";
-
-export type EnhancedCopyAction =
+export type PromptAction =
   | "explain"
   | "debug"
   | "summarize"
@@ -8,28 +6,75 @@ export type EnhancedCopyAction =
   | "share"
   | "custom";
 
-export type EnhancedCopyConfig = {
-  mode: EnhancedCopyMode;
-  action: EnhancedCopyAction;
-  customTemplate?: string;
-  includeSourceUrl?: boolean;
-  includeTitle?: boolean;
-  includeSelection?: boolean;
-  buttonLabel?: string;
-};
+export type ContentFormat = "text" | "markdown" | "code";
 
-export type EnhancedCopyInput = {
+export type SourceContext = {
   title?: string;
   url?: string;
-  selection?: string;
-  action?: EnhancedCopyAction;
-  customTemplate?: string;
+  label?: string;
+  language?: string;
+  contentType?: ContentFormat;
+  metadata?: Record<string, string | number | boolean | undefined>;
+};
+
+export type RenderOptions = {
+  action?: PromptAction;
+  customTask?: string;
+  question?: string;
+  maxChars?: number;
   includeSourceUrl?: boolean;
   includeTitle?: boolean;
-  includeSelection?: boolean;
+  includeSafetyNote?: boolean;
+  outputFormat?: "markdown";
+};
+
+export type EnhancedPromptInput = {
+  content: string;
+  source?: SourceContext;
+  options?: RenderOptions;
+};
+
+export type CopyResult =
+  | {
+      ok: true;
+      text: string;
+      chars: number;
+      truncated: boolean;
+      action: PromptAction;
+      method: "clipboard" | "legacy";
+    }
+  | {
+      ok: false;
+      text: string;
+      chars: number;
+      truncated: boolean;
+      action: PromptAction;
+      error: Error;
+    };
+
+export type CopyOptions = RenderOptions & {
+  source?: SourceContext;
+  clipboard?: Pick<Clipboard, "writeText">;
+};
+
+export type MountEnhancedCopyOptions = RenderOptions & {
+  root?: ParentNode;
+  selector?: string;
+  buttonLabel?: string | ((source: SourceContext, action: PromptAction) => string);
+  observe?: boolean;
+  getSource?: (element: Element) => SourceContext;
+  getContent?: (element: Element) => string;
+  onCopied?: (result: CopyResult, element: Element) => void;
+  onError?: (result: CopyResult, element: Element) => void;
 };
 
 export type EnhancedCopyController = {
   destroy: () => void;
-  copyFromElement: (element: Element, action?: EnhancedCopyAction) => Promise<string>;
+  copyFromElement: (element: Element, options?: CopyOptions) => Promise<CopyResult>;
 };
+
+export type EnhancedCopyConfig = MountEnhancedCopyOptions & {
+  action?: PromptAction;
+};
+
+export type EnhancedCopyAction = PromptAction;

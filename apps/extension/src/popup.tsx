@@ -1,19 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import type { EnhancedCopyAction, EnhancedCopyMode } from "@enhanced-copy/core";
+import type { PromptAction } from "@enhanced-copy/core";
 import { ACTIONS, DEFAULT_EXTENSION_SETTINGS, getSettings, saveSettings, type ExtensionSettings } from "./shared";
-import { searchHistory, type ClipboardHistoryItem } from "./history";
 import "./popup.css";
+
+type CopyResponse = {
+  ok: boolean;
+  text?: string;
+  error?: string;
+};
 
 function Popup() {
   const [settings, setSettings] = useState<ExtensionSettings>(DEFAULT_EXTENSION_SETTINGS);
-  const [history, setHistory] = useState<ClipboardHistoryItem[]>([]);
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("");
+  const [recentPrompts, setRecentPrompts] = useState<string[]>([]);
+  const [status, setStatus] = useState("Select text, then copy an AI-ready prompt.");
 
   useEffect(() => {
     void getSettings().then(setSettings);
-    void refreshHistory();
+    void refreshRecentPrompts();
   }, []);
 
   async function update(next: Partial<ExtensionSettings>) {
@@ -21,79 +25,49 @@ function Popup() {
     setSettings(merged);
     await saveSettings(next);
     setStatus("Saved");
-    window.setTimeout(() => setStatus(""), 1200);
   }
 
-  async function refreshHistory() {
-    const response = await chrome.runtime.sendMessage({ type: "ENHANCED_COPY_GET_HISTORY" }).catch(() => undefined);
-    if (response?.history) setHistory(response.history);
+  async function refreshRecentPrompts() {
+    const stored = await chrome.storage.local.get({ recentPrompts: [] });
+    setRecentPrompts(stored.recentPrompts as string[]);
   }
 
-  async function copyNow(action = settings.action) {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab.id) return;
-    const response = await chrome.tabs
-      .sendMessage(tab.id, {
-        type: "ENHANCED_COPY_COPY",
-        action,
-        settings
-      })
-      .catch(() => undefined);
-    setStatus(response?.ok ? "Enhanced copy ready" : "Open a normal webpage first");
-    await refreshHistory();
+  async function copySelection(action = settings.action || "explain") {
+    const response = (await chrome.runtime
+      .sendMessage({ type: "ENHANCED_COPY_ACTIVE_TAB", action })
+      .catch((error) => ({ ok: false, error: error.message }))) as CopyResponse;
+
+    if (response.ok) {
+      if (response.text) {
+        await navigator.clipboard.writeText(response.text).catch(() => {
+          // Background writes the clipboard for real active-tab flows. Popup write is a best-effort mirror.
+        });
+      }
+      setStatus("Enhanced prompt copied");
+      await refreshRecentPrompts();
+    } else {
+      setStatus(response.error || "Copy failed");
+    }
   }
 
-  async function copyHistoryItem(item: ClipboardHistoryItem) {
-    await navigator.clipboard.writeText(item.text);
-    setStatus("History item copied");
-  }
-
-  async function togglePinned(id: string) {
-    const response = await chrome.runtime.sendMessage({ type: "ENHANCED_COPY_TOGGLE_PIN", id });
-    setHistory(response.history);
-  }
-
-  async function deleteItem(id: string) {
-    const response = await chrome.runtime.sendMessage({ type: "ENHANCED_COPY_DELETE_HISTORY", id });
-    setHistory(response.history);
-  }
-
-  async function clearHistory() {
-    const response = await chrome.runtime.sendMessage({ type: "ENHANCED_COPY_CLEAR_HISTORY" });
-    setHistory(response.history);
-  }
-
-  const filteredHistory = searchHistory(history, query);
-
-  function modeLabel(mode: EnhancedCopyMode) {
-    if (mode === "override-copy") return "Override Cmd/Ctrl+C";
-    if (mode === "all") return "Shortcut + override";
-    if (mode === "button") return "Button";
-    return "Shortcut only";
+  async function copyRecent(text: string) {
+    await navigator.clipboard.writeText(text);
+    setStatus("Recent prompt copied");
   }
 
   return (
     <main>
       <header>
-        <div>
-          <h1>Enhanced Copy</h1>
-          <p>AI copy layer + local clipboard manager.</p>
-        </div>
-        <strong>{history.length}/{settings.historyLimit}</strong>
+        <h1>Enhanced Copy</h1>
+        <p>SDK dogfood extension. Explicit selection only. No background clipboard capture.</p>
       </header>
 
-      <section className="quick">
-        <div className="quick-title">
-          <span>Current selection</span>
-          <small>{modeLabel(settings.mode)}</small>
-        </div>
-        <div className="actions">
-          {ACTIONS.map((item) => (
-            <button key={item.action} type="button" onClick={() => void copyNow(item.action)}>
-              {item.label}
-            </button>
-          ))}
-        </div>
+      <section className="actions" aria-label="Prompt actions">
+        {ACTIONS.map((item) => (
+          <button key={item.action} type="button" onClick={() => void copySelection(item.action)}>
+            {item.label}
+          </button>
+        ))}
       </section>
 
       <details>
@@ -102,7 +76,7 @@ function Popup() {
           Default action
           <select
             value={settings.action}
-            onChange={(event) => void update({ action: event.currentTarget.value as EnhancedCopyAction })}
+            onChange={(event) => void update({ action: event.currentTarget.value as PromptAction })}
           >
             {ACTIONS.map((item) => (
               <option key={item.action} value={item.action}>
@@ -113,53 +87,28 @@ function Popup() {
         </label>
 
         <label>
-          Copy mode
-          <select
-            value={settings.mode}
-            onChange={(event) => void update({ mode: event.currentTarget.value as EnhancedCopyMode })}
-          >
-            <option value="shortcut">Shortcut only</option>
-            <option value="override-copy">Override Cmd/Ctrl+C</option>
-            <option value="all">Shortcut + override</option>
-          </select>
+          Max copied content chars
+          <input
+            type="number"
+            min="1000"
+            max="50000"
+            value={settings.maxChars || 12_000}
+            onChange={(event) => void update({ maxChars: Number(event.currentTarget.value) })}
+          />
         </label>
 
         <label className="check">
           <input
             type="checkbox"
-            checked={settings.capturePlainCopies}
-            onChange={(event) => void update({ capturePlainCopies: event.currentTarget.checked })}
-          />
-          Save normal copies
-        </label>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={settings.showSelectionBubble}
-            onChange={(event) => void update({ showSelectionBubble: event.currentTarget.checked })}
-          />
-          Show selection bubble
-        </label>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={settings.redactLikelySecrets}
-            onChange={(event) => void update({ redactLikelySecrets: event.currentTarget.checked })}
-          />
-          Redact likely secrets
-        </label>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={settings.includeTitle}
+            checked={settings.includeTitle ?? true}
             onChange={(event) => void update({ includeTitle: event.currentTarget.checked })}
           />
-          Include title
+          Include page title
         </label>
         <label className="check">
           <input
             type="checkbox"
-            checked={settings.includeSourceUrl}
+            checked={settings.includeSourceUrl ?? true}
             onChange={(event) => void update({ includeSourceUrl: event.currentTarget.checked })}
           />
           Include URL
@@ -167,63 +116,38 @@ function Popup() {
         <label className="check">
           <input
             type="checkbox"
-            checked={settings.showOverrideBadge}
-            onChange={(event) => void update({ showOverrideBadge: event.currentTarget.checked })}
+            checked={settings.includeSafetyNote ?? true}
+            onChange={(event) => void update({ includeSafetyNote: event.currentTarget.checked })}
           />
-          Show override badge
+          Include prompt-injection note
+        </label>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={settings.rememberRecentPrompts}
+            onChange={(event) => void update({ rememberRecentPrompts: event.currentTarget.checked })}
+          />
+          Remember explicit enhanced prompts
         </label>
       </details>
 
-      <section className="history-head">
-        <input
-          aria-label="Search clipboard history"
-          placeholder="Search local history"
-          value={query}
-          onChange={(event) => setQuery(event.currentTarget.value)}
-        />
-        <button type="button" onClick={() => void clearHistory()} disabled={!history.length}>
-          Clear
-        </button>
-      </section>
-
-      <section className="history" aria-label="Clipboard history">
-        {filteredHistory.length === 0 ? (
-          <p className="empty">Copy text on any normal webpage. It lands here locally.</p>
-        ) : (
-          filteredHistory.map((item) => (
-            <article key={item.id}>
-              <div className="item-meta">
-                <span className={`kind ${item.kind}`}>{item.action || item.kind}</span>
-                <span title={item.url}>{hostFor(item.url) || item.title}</span>
-              </div>
-              <p>{item.text}</p>
-              <div className="item-actions">
-                <button type="button" onClick={() => void copyHistoryItem(item)}>
-                  Copy
-                </button>
-                <button type="button" onClick={() => void togglePinned(item.id)}>
-                  {item.pinned ? "Unpin" : "Pin"}
-                </button>
-                <button type="button" onClick={() => void deleteItem(item.id)}>
-                  Delete
-                </button>
-              </div>
+      {recentPrompts.length > 0 ? (
+        <section className="recent" aria-label="Recent explicit prompts">
+          <h2>Recent explicit prompts</h2>
+          {recentPrompts.map((text) => (
+            <article key={text}>
+              <p>{text}</p>
+              <button type="button" onClick={() => void copyRecent(text)}>
+                Copy
+              </button>
             </article>
-          ))
-        )}
-      </section>
+          ))}
+        </section>
+      ) : null}
 
-      <footer>{status || "Shortcut: Cmd/Ctrl+Shift+C"}</footer>
+      <footer>{status}</footer>
     </main>
   );
-}
-
-function hostFor(url: string): string {
-  try {
-    return new URL(url).host;
-  } catch {
-    return "";
-  }
 }
 
 createRoot(document.getElementById("root")!).render(<Popup />);

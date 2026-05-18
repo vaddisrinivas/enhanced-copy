@@ -1,21 +1,17 @@
+import { renderEnhancedPrompt, type PromptAction, type SourceContext } from "@enhanced-copy/core";
 import { ACTIONS, getSettings } from "./shared";
-import type { EnhancedCopyAction } from "@enhanced-copy/core";
-import {
-  createHistoryItem,
-  deleteHistoryItem,
-  HISTORY_KEY,
-  togglePinned,
-  upsertHistory,
-  type ClipboardHistoryInput,
-  type ClipboardHistoryItem
-} from "./history";
+
+type PageSelection = {
+  content: string;
+  source: SourceContext;
+};
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
       id: "enhanced-copy-root",
       title: "Enhanced Copy",
-      contexts: ["selection", "page"]
+      contexts: ["selection"]
     });
 
     for (const item of ACTIONS) {
@@ -23,7 +19,7 @@ chrome.runtime.onInstalled.addListener(() => {
         id: `enhanced-copy-${item.action}`,
         parentId: "enhanced-copy-root",
         title: item.label,
-        contexts: ["selection", "page"]
+        contexts: ["selection"]
       });
     }
   });
@@ -31,80 +27,94 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (!tab?.id || !info.menuItemId.toString().startsWith("enhanced-copy-")) return;
-  const action = info.menuItemId.toString().replace("enhanced-copy-", "") as EnhancedCopyAction;
+  const action = info.menuItemId.toString().replace("enhanced-copy-", "") as PromptAction;
   if (!ACTIONS.some((item) => item.action === action)) return;
-  void copyFromTab(tab.id, action);
+  void copyFromActiveTab(tab.id, action);
 });
 
 chrome.commands.onCommand.addListener((command) => {
   if (command !== "enhanced-copy-selection") return;
-  void chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
-    if (!tab?.id) return;
-    const settings = await getSettings();
-    await copyFromTab(tab.id, settings.action);
+  void findCopyTargetTab().then(async (tabId) => {
+    if (tabId) await copyFromActiveTab(tabId);
   });
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type === "ENHANCED_COPY_SAVE_HISTORY") {
-    void saveHistory(message.item as ClipboardHistoryInput).then((history) => sendResponse({ ok: true, history }));
-    return true;
-  }
-
-  if (message?.type === "ENHANCED_COPY_GET_HISTORY") {
-    void getHistory().then((history) => sendResponse({ ok: true, history }));
-    return true;
-  }
-
-  if (message?.type === "ENHANCED_COPY_CLEAR_HISTORY") {
-    void chrome.storage.local.set({ [HISTORY_KEY]: [] }).then(() => sendResponse({ ok: true, history: [] }));
-    return true;
-  }
-
-  if (message?.type === "ENHANCED_COPY_DELETE_HISTORY") {
-    void mutateHistory((history) => deleteHistoryItem(history, message.id as string)).then((history) =>
-      sendResponse({ ok: true, history })
-    );
-    return true;
-  }
-
-  if (message?.type === "ENHANCED_COPY_TOGGLE_PIN") {
-    void mutateHistory((history) => togglePinned(history, message.id as string)).then((history) =>
-      sendResponse({ ok: true, history })
-    );
-    return true;
-  }
-
-  return false;
+  if (message?.type !== "ENHANCED_COPY_ACTIVE_TAB") return false;
+  void findCopyTargetTab().then(async (tabId) => {
+    if (!tabId) {
+      sendResponse({ ok: false, error: "No active tab" });
+      return;
+    }
+    const result = await copyFromActiveTab(tabId, message.action as PromptAction | undefined);
+    sendResponse(result);
+  });
+  return true;
 });
 
-async function copyFromTab(tabId: number, action: EnhancedCopyAction): Promise<void> {
-  const settings = await getSettings();
-  await chrome.tabs
-    .sendMessage(tabId, {
-      type: "ENHANCED_COPY_COPY",
-      action,
-      source: "context-menu",
-      settings
+async function copyFromActiveTab(tabId: number, action?: PromptAction): Promise<{ ok: boolean; text?: string; error?: string }> {
+  try {
+    const settings = await getSettings();
+    const page = await collectSelection(tabId);
+    if (!page.content.trim()) return { ok: false, error: "Select text on the page first" };
+
+    const text = renderEnhancedPrompt({
+      content: page.content,
+      source: page.source,
+      options: { ...settings, action: action || settings.action }
+    });
+
+    await writeText(tabId, text);
+    if (settings.rememberRecentPrompts) await saveRecentPrompt(text);
+    return { ok: true, text };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+async function collectSelection(tabId: number): Promise<PageSelection> {
+  const [result] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => ({
+      content: window.getSelection()?.toString() || "",
+      source: {
+        title: document.title,
+        url: window.location.href,
+        contentType: "text" as const
+      }
     })
-    .catch(() => undefined);
+  });
+  return result.result as PageSelection;
 }
 
-async function saveHistory(input: ClipboardHistoryInput): Promise<ClipboardHistoryItem[]> {
-  const settings = await getSettings();
-  const item = createHistoryItem(input, settings.redactLikelySecrets);
-  return mutateHistory((history) => upsertHistory(history, item, settings.historyLimit));
+async function writeText(tabId: number, text: string): Promise<void> {
+  const [result] = await chrome.scripting.executeScript({
+    target: { tabId },
+    args: [text],
+    func: async (value: string) => {
+      await navigator.clipboard.writeText(value);
+      return true;
+    }
+  });
+
+  if (!result.result) throw new Error("Clipboard write failed");
 }
 
-async function getHistory(): Promise<ClipboardHistoryItem[]> {
-  const stored = await chrome.storage.local.get({ [HISTORY_KEY]: [] });
-  return (stored[HISTORY_KEY] as ClipboardHistoryItem[]) || [];
+async function saveRecentPrompt(text: string): Promise<void> {
+  const stored = await chrome.storage.local.get({ recentPrompts: [] });
+  const recentPrompts = [text, ...(stored.recentPrompts as string[]).filter((item) => item !== text)].slice(0, 10);
+  await chrome.storage.local.set({ recentPrompts });
 }
 
-async function mutateHistory(
-  mutate: (history: ClipboardHistoryItem[]) => ClipboardHistoryItem[]
-): Promise<ClipboardHistoryItem[]> {
-  const history = mutate(await getHistory());
-  await chrome.storage.local.set({ [HISTORY_KEY]: history });
-  return history;
+async function findCopyTargetTab(): Promise<number | undefined> {
+  const tabs = await chrome.tabs.query({});
+  const activeNormal = tabs.find((tab) => tab.active && tab.id && isNormalPage(tab.url));
+  if (activeNormal?.id) return activeNormal.id;
+
+  return [...tabs].reverse().find((tab) => tab.id && isNormalPage(tab.url))?.id;
+}
+
+function isNormalPage(url?: string): boolean {
+  if (!url) return true;
+  return url.startsWith("http://") || url.startsWith("https://") || url.startsWith("file://");
 }

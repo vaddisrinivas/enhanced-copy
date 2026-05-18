@@ -1,22 +1,32 @@
-import { writeClipboardText } from "./clipboard";
-import { normalizeConfig, renderEnhancedCopy } from "./templates";
-import type { EnhancedCopyAction, EnhancedCopyConfig, EnhancedCopyController } from "./types";
+import { copyEnhancedPrompt } from "./clipboard";
+import type {
+  CopyOptions,
+  CopyResult,
+  EnhancedCopyConfig,
+  EnhancedCopyController,
+  MountEnhancedCopyOptions,
+  PromptAction,
+  SourceContext
+} from "./types";
 import { showCopyFallback, showToast } from "./ui";
 
-const ACTIONS = new Set<EnhancedCopyAction>(["explain", "debug", "summarize", "ask", "share", "custom"]);
+const ACTIONS = new Set<PromptAction>(["explain", "debug", "summarize", "ask", "share", "custom"]);
 
-export function createEnhancedCopy(config: Partial<EnhancedCopyConfig> = {}): EnhancedCopyController {
-  const resolved = normalizeConfig(config);
-  const disposers: Array<() => void> = [];
+export function mountEnhancedCopy(options: MountEnhancedCopyOptions = {}): EnhancedCopyController {
+  const root = options.root || document;
+  const selector = options.selector || "[data-enhanced-copy]";
+  const observe = options.observe ?? true;
   const buttons: HTMLElement[] = [];
-  const enhancedElements = new WeakSet<Element>();
+  const disposers: Array<() => void> = [];
+  const mounted = new WeakSet<Element>();
 
-  if (resolved.mode === "button" || resolved.mode === "all") {
-    scanForEnhancedCopyBlocks(document);
+  scan(root);
+
+  if (observe && document.body) {
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         mutation.addedNodes.forEach((node) => {
-          if (node instanceof Element) scanForEnhancedCopyBlocks(node);
+          if (node instanceof Element) scan(node);
         });
       }
     });
@@ -24,47 +34,55 @@ export function createEnhancedCopy(config: Partial<EnhancedCopyConfig> = {}): En
     disposers.push(() => observer.disconnect());
   }
 
-  if (resolved.mode === "shortcut" || resolved.mode === "all") {
-    const onKeyDown = (event: KeyboardEvent) => {
-      const copyKey = event.key.toLowerCase() === "c" && (event.metaKey || event.ctrlKey) && event.shiftKey;
-      if (!copyKey || isEditable(event.target)) return;
-      event.preventDefault();
-      const element = activeElement();
-      void copyFromElement(element, element ? actionForElement(element, resolved) : resolved.action);
-    };
-    document.addEventListener("keydown", onKeyDown);
-    disposers.push(() => document.removeEventListener("keydown", onKeyDown));
-  }
+  async function copyFromElement(element: Element, copyOptions: CopyOptions = {}): Promise<CopyResult> {
+    const source = { ...defaultSourceForElement(element), ...options.getSource?.(element), ...copyOptions.source };
+    const result = await copyEnhancedPrompt(
+      {
+        content: getContent(element, options),
+        source,
+        options: {
+          ...options,
+          ...copyOptions,
+          action: copyOptions.action || actionForElement(element, options)
+        }
+      },
+      copyOptions
+    );
 
-  if (resolved.mode === "override-copy" || resolved.mode === "all") {
-    document.documentElement.setAttribute("data-enhanced-copy-override", "enabled");
-    const onCopy = (event: ClipboardEvent) => {
-      if (isEditable(event.target)) return;
-      const selection = selectedText();
-      const element = activeElement();
-      if (!selection && !element) return;
-
-      const text = renderFromElement(element, element ? actionForElement(element, resolved) : resolved.action);
-      event.preventDefault();
-      event.clipboardData?.setData("text/plain", text);
-      showToast("Enhanced copy ready");
-    };
-    document.addEventListener("copy", onCopy);
-    disposers.push(() => {
-      document.removeEventListener("copy", onCopy);
-      document.documentElement.removeAttribute("data-enhanced-copy-override");
-    });
-  }
-
-  async function copyFromElement(element: Element | null, action: EnhancedCopyAction = resolved.action): Promise<string> {
-    const text = renderFromElement(element, action);
-    try {
-      await writeClipboardText(text);
-      showToast("Enhanced copy ready");
-    } catch {
-      showCopyFallback(text);
+    if (result.ok) {
+      showToast("Enhanced prompt copied");
+      options.onCopied?.(result, element);
+    } else {
+      showCopyFallback(result.text);
+      options.onError?.(result, element);
     }
-    return text;
+
+    return result;
+  }
+
+  function scan(scanRoot: ParentNode | Element): void {
+    if (scanRoot instanceof Element && scanRoot.matches(selector)) {
+      mountButton(scanRoot);
+    }
+    scanRoot.querySelectorAll(selector).forEach(mountButton);
+  }
+
+  function mountButton(element: Element): void {
+    if (mounted.has(element)) return;
+    mounted.add(element);
+
+    const action = actionForElement(element, options);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "enhanced-copy-button";
+    button.title = "Copy an AI-ready prompt";
+    button.textContent = labelFor(element, options, action);
+    button.addEventListener("click", () => {
+      void copyFromElement(element);
+    });
+
+    element.before(button);
+    buttons.push(button);
   }
 
   return {
@@ -74,79 +92,85 @@ export function createEnhancedCopy(config: Partial<EnhancedCopyConfig> = {}): En
       disposers.forEach((dispose) => dispose());
     }
   };
-
-  function renderFromElement(element: Element | null, action: EnhancedCopyAction): string {
-    return renderEnhancedCopy({
-      action,
-      customTemplate: resolved.customTemplate,
-      includeSelection: resolved.includeSelection,
-      includeSourceUrl: resolved.includeSourceUrl,
-      includeTitle: resolved.includeTitle,
-      selection: selectedText() || elementText(element),
-      title: document.title,
-      url: window.location.href
-    });
-  }
-
-  function scanForEnhancedCopyBlocks(root: ParentNode | Element): void {
-    if (root instanceof Element && root.matches("[data-enhanced-copy]")) {
-      enhanceElement(root);
-    }
-
-    root.querySelectorAll("[data-enhanced-copy]").forEach(enhanceElement);
-  }
-
-  function enhanceElement(element: Element): void {
-    if (enhancedElements.has(element)) return;
-    enhancedElements.add(element);
-
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "enhanced-copy-button";
-    button.title = "Copy enhanced text for AI or sharing";
-    button.textContent = buttonLabelFor(element, resolved);
-    button.addEventListener("click", () => {
-      void copyFromElement(element, actionForElement(element, resolved));
-    });
-    element.before(button);
-    buttons.push(button);
-  }
 }
 
-function activeElement(): Element | null {
-  const selected = window.getSelection();
-  const anchor = selected?.anchorNode;
-  const element = anchor instanceof Element ? anchor : anchor?.parentElement;
-  return element?.closest("[data-enhanced-copy]") ?? document.querySelector("[data-enhanced-copy]");
+export function createEnhancedCopy(config: EnhancedCopyConfig = {}): EnhancedCopyController {
+  return mountEnhancedCopy(config);
 }
 
-function actionForElement(element: Element, config: EnhancedCopyConfig): EnhancedCopyAction {
-  const value = element.getAttribute("data-enhanced-copy")?.trim() as EnhancedCopyAction | undefined;
-  return value && ACTIONS.has(value) ? value : config.action;
+export function extractElementContent(element: Element): string {
+  const code = element.matches("pre, code") ? element : element.querySelector("pre, code");
+  if (code) return (code.textContent || "").trim();
+
+  return domToMarkdown(element).replace(/\n{3,}/g, "\n\n").trim();
 }
 
-function buttonLabelFor(element: Element, config: EnhancedCopyConfig): string {
-  const action = actionForElement(element, config);
-  if (config.buttonLabel && action === config.action) return config.buttonLabel;
+export function sourceFromElement(element: Element): SourceContext {
+  const code = element.matches("pre, code") ? element : element.querySelector("pre, code");
+  const language = code ? languageFromClass(code.className) : undefined;
+  const explicitType = element.getAttribute("data-enhanced-copy-type");
+
+  return {
+    title: element.getAttribute("data-enhanced-copy-title") || document.title,
+    url: element.getAttribute("data-enhanced-copy-url") || window.location.href,
+    label: element.getAttribute("data-enhanced-copy-label") || undefined,
+    language,
+    contentType: explicitType === "code" || code ? "code" : "markdown"
+  };
+}
+
+function defaultSourceForElement(element: Element): SourceContext {
+  return sourceFromElement(element);
+}
+
+function getContent(element: Element, options: MountEnhancedCopyOptions): string {
+  return options.getContent?.(element) || extractElementContent(element);
+}
+
+function actionForElement(element: Element, options: MountEnhancedCopyOptions): PromptAction {
+  const value = element.getAttribute("data-enhanced-copy")?.trim() as PromptAction | undefined;
+  return value && ACTIONS.has(value) ? value : options.action || "explain";
+}
+
+function labelFor(element: Element, options: MountEnhancedCopyOptions, action: PromptAction): string {
+  const source = defaultSourceForElement(element);
+  if (typeof options.buttonLabel === "function") return options.buttonLabel(source, action);
+  if (typeof options.buttonLabel === "string") return options.buttonLabel;
   if (action === "explain") return "Explain";
   if (action === "debug") return "Debug";
   if (action === "summarize") return "Summarize";
   if (action === "ask") return "Ask AI";
   if (action === "share") return "Share";
-  return config.buttonLabel || "Enhanced Copy";
+  return "Copy AI Prompt";
 }
 
-function selectedText(): string {
-  return window.getSelection()?.toString().trim() ?? "";
+function domToMarkdown(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent || "";
+  if (!(node instanceof Element)) return "";
+
+  const tag = node.tagName.toLowerCase();
+  if (tag === "br") return "\n";
+  if (tag === "a") {
+    const text = childrenToMarkdown(node).trim() || node.getAttribute("href") || "";
+    const href = node.getAttribute("href");
+    return href ? `[${text}](${href})` : text;
+  }
+  if (tag === "code") return `\`${node.textContent || ""}\``;
+  if (tag === "pre") return `\n\`\`\`\n${node.textContent || ""}\n\`\`\`\n`;
+  if (/^h[1-6]$/.test(tag)) return `\n${"#".repeat(Number(tag[1]))} ${childrenToMarkdown(node).trim()}\n`;
+  if (tag === "li") return `\n- ${childrenToMarkdown(node).trim()}`;
+  if (["p", "div", "section", "article", "ul", "ol"].includes(tag)) return `\n${childrenToMarkdown(node).trim()}\n`;
+
+  return childrenToMarkdown(node);
 }
 
-function elementText(element: Element | null): string {
-  if (!element) return "";
-  return ((element as HTMLElement).innerText || element.textContent || "").trim();
+function childrenToMarkdown(element: Element): string {
+  return Array.from(element.childNodes).map(domToMarkdown).join("");
 }
 
-function isEditable(target: EventTarget | null): boolean {
-  if (!(target instanceof Element)) return false;
-  const tag = target.tagName.toLowerCase();
-  return tag === "input" || tag === "textarea" || (target as HTMLElement).isContentEditable;
+function languageFromClass(className: string): string | undefined {
+  return className
+    .split(/\s+/)
+    .find((value) => value.startsWith("language-"))
+    ?.replace("language-", "");
 }

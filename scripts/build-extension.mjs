@@ -17,17 +17,7 @@ await Promise.all([
     bundle: true,
     format: "esm",
     platform: "browser",
-    target: "chrome120",
-    sourcemap: true
-  }),
-  build({
-    entryPoints: [join(app, "src/content.ts")],
-    outfile: join(dist, "content.js"),
-    bundle: true,
-    format: "iife",
-    platform: "browser",
-    target: "chrome120",
-    sourcemap: true
+    target: "chrome120"
   }),
   build({
     entryPoints: [join(app, "src/popup.tsx")],
@@ -36,7 +26,6 @@ await Promise.all([
     format: "iife",
     platform: "browser",
     target: "chrome120",
-    sourcemap: true,
     loader: { ".css": "css" }
   })
 ]);
