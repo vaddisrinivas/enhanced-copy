@@ -2,9 +2,12 @@ import { useMemo, useState } from "react";
 import {
   copyEnhancedPrompt,
   renderEnhancedPrompt,
+  sendEnhancedPrompt,
   type CopyResult,
+  type EnhancedCopyDestination,
   type PromptAction,
   type RenderOptions,
+  type SendEnhancedPromptResult,
   type SourceContext
 } from "@enhanced-copy/core";
 
@@ -14,9 +17,12 @@ export type EnhancedCopyButtonProps = RenderOptions & {
   title?: string;
   url?: string;
   action?: PromptAction;
+  destination?: EnhancedCopyDestination;
+  intent?: "copy" | "ask";
   className?: string;
   children?: React.ReactNode;
   onCopied?: (result: CopyResult) => void;
+  onSent?: (result: SendEnhancedPromptResult) => void;
   onError?: (result: CopyResult) => void;
 };
 
@@ -61,6 +67,30 @@ export function EnhancedCopyButton(props: EnhancedCopyButtonProps) {
   );
 
   async function onClick() {
+    if (props.intent === "ask" || (props.destination && props.destination.type !== "clipboard")) {
+      const result = await sendEnhancedPrompt({
+        content: props.content,
+        source,
+        destination: props.destination,
+        options: {
+          action: props.action ?? "explain",
+          customTask: props.customTask,
+          includeSafetyNote: props.includeSafetyNote,
+          includeSourceUrl: props.includeSourceUrl,
+          includeTitle: props.includeTitle,
+          maxChars: props.maxChars,
+          question: props.question
+        }
+      });
+
+      props.onSent?.(result);
+      if (result.ok) {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1400);
+      }
+      return;
+    }
+
     const result = await copyEnhancedPrompt({
       content: props.content,
       source,

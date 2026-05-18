@@ -14,6 +14,17 @@ const codeText = `async function loadUsers() {
 const issueText =
   "Bug: selected code snippets lose indentation when users paste raw docs into an AI chat. Add a Debug copy button that carries task and source context.";
 
+const destinationCode = `await sendEnhancedPrompt({
+  content,
+  options: { action: "debug" },
+  destination: {
+    type: "openai-compatible",
+    baseUrl: "https://your-gateway.com/v1",
+    apiKey: userKey,
+    model: "gpt-4o-mini"
+  }
+});`;
+
 const preview = renderEnhancedPrompt({
   content: codeText,
   source: {
@@ -44,7 +55,7 @@ export function App() {
           <h1 id="hero-title">Add AI-ready copy buttons in 5 minutes.</h1>
           <p className="lede">
             Enhanced Copy turns docs, code blocks, support answers, and changelogs into structured prompts
-            users can paste into ChatGPT, Claude, Cursor, GitHub, Reddit, or LinkedIn.
+            users can paste anywhere or send to Chrome AI, Ollama, webhooks, and BYOK model APIs.
           </p>
           <div className="hero-actions">
             <EnhancedCopyButton className="primary" content={docsText} action="explain">
@@ -71,7 +82,30 @@ export function App() {
       <section className="install-strip" aria-label="Install examples">
         <code>npm install @enhanced-copy/core</code>
         <code>{`mountEnhancedCopy()`}</code>
-        <code>{`<p data-enhanced-copy="explain">...</p>`}</code>
+        <code>{`sendEnhancedPrompt()`}</code>
+      </section>
+
+      <section className="destinations" aria-label="Destination examples">
+        <div>
+          <span>Clipboard</span>
+          <strong>Default</strong>
+        </div>
+        <div>
+          <span>Chrome AI</span>
+          <strong>Local</strong>
+        </div>
+        <div>
+          <span>Ollama</span>
+          <strong>localhost</strong>
+        </div>
+        <div>
+          <span>Webhook</span>
+          <strong>your backend</strong>
+        </div>
+        <div>
+          <span>OpenAI-compatible</span>
+          <strong>BYOK</strong>
+        </div>
       </section>
 
       <section className="arena" aria-label="SDK examples">
@@ -113,6 +147,16 @@ export function App() {
         </article>
       </section>
 
+      <section className="api-strip" aria-label="Destination API">
+        <div>
+          <strong>Destination API</strong>
+          <p>Same rendered prompt. Different output target. No provider lock-in.</p>
+        </div>
+        <pre>
+          <code>{destinationCode}</code>
+        </pre>
+      </section>
+
       <section className="principles">
         <div>
           <strong>No background capture</strong>
@@ -125,6 +169,10 @@ export function App() {
         <div>
           <strong>Docs-team wedge</strong>
           <span>Embeddable SDK first. Extension is dogfood, not the product.</span>
+        </div>
+        <div>
+          <strong>BYOK ready</strong>
+          <span>Users can bring API URLs, local models, or a private webhook.</span>
         </div>
       </section>
     </main>

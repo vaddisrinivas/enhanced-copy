@@ -113,7 +113,9 @@ button:hover,
 }
 
 .install-strip code,
+.destinations div,
 article,
+.api-strip,
 .principles div {
   border: 1px solid #263950;
   border-radius: 8px;
@@ -125,6 +127,30 @@ article,
   padding: 14px;
   color: #ffcc66;
   font-weight: 800;
+}
+
+.destinations {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.destinations div {
+  display: grid;
+  gap: 8px;
+  min-height: 82px;
+  padding: 14px;
+}
+
+.destinations span {
+  color: #c9d7e8;
+  font-size: 13px;
+}
+
+.destinations strong {
+  color: #9cff6e;
+  font-size: 16px;
 }
 
 .arena {
@@ -175,6 +201,31 @@ article pre {
   line-height: 1.5;
 }
 
+.api-strip {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.55fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  margin-top: 18px;
+  padding: 18px;
+}
+
+.api-strip strong {
+  color: #f8fbff;
+  font-size: 20px;
+}
+
+.api-strip pre {
+  overflow: auto;
+  margin: 0;
+  border-radius: 8px;
+  background: #111827;
+  color: #f9fafb;
+  padding: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .enhanced-copy-button {
   margin: 0 0 10px;
 }
@@ -206,6 +257,8 @@ article pre {
   .hero,
   .arena,
   .install-strip,
+  .destinations,
+  .api-strip,
   .principles {
     grid-template-columns: 1fr;
   }

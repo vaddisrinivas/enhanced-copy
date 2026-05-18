@@ -36,6 +36,7 @@ test.describe("Enhanced Copy extension", () => {
 
     expect(manifest.content_scripts).toBeUndefined();
     expect(manifest.host_permissions).toBeUndefined();
+    expect(manifest.optional_host_permissions).toEqual(["http://*/*", "https://*/*"]);
     expect(manifest.permissions).toEqual(expect.arrayContaining(["activeTab", "scripting", "clipboardWrite"]));
     expect(shortcut).toBeTruthy();
   });
@@ -80,14 +81,19 @@ test.describe("Enhanced Copy extension", () => {
       });
     }, { ok: true, text: promptText });
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popup.getByRole("button", { name: "Explain" }).click();
+    await popup.getByRole("button", { name: "Copy Prompt" }).click();
     await expect(popup.getByText("Enhanced prompt copied")).toBeVisible();
 
     const clipboard = await page.evaluate(() => navigator.clipboard.readText());
     const messages = await popup.evaluate(
       () => (window as typeof window & { __enhancedCopyMessages?: unknown[] }).__enhancedCopyMessages
     );
-    expect(messages).toContainEqual({ type: "ENHANCED_COPY_ACTIVE_TAB", action: "explain" });
+    expect(messages).toContainEqual({
+      type: "ENHANCED_COPY_ACTIVE_TAB",
+      intent: "copy",
+      action: "explain",
+      destinationId: "clipboard"
+    });
     expect(clipboard).toContain("## Source");
     expect(clipboard).toContain("- title: GitHub Issue Fixture");
     expect(clipboard).toContain("## Task\nExplain this clearly and help me use it.");
@@ -106,8 +112,60 @@ test.describe("Enhanced Copy extension", () => {
       });
     });
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popup.getByRole("button", { name: "Explain" }).click();
+    await popup.getByRole("button", { name: "Copy Prompt" }).click();
 
     await expect(popup.getByText("Select text on the page first")).toBeVisible();
+  });
+
+  test("popup saves a BYOK webhook destination and asks it", async () => {
+    const popup = await context.newPage();
+    await popup.addInitScript(() => {
+      Object.defineProperty(chrome.permissions, "contains", {
+        configurable: true,
+        value: async () => true
+      });
+      Object.defineProperty(chrome.permissions, "request", {
+        configurable: true,
+        value: async () => true
+      });
+      Object.defineProperty(chrome.runtime, "sendMessage", {
+        configurable: true,
+        value: async (message: unknown) => {
+          (window as typeof window & { __enhancedCopyMessages?: unknown[] }).__enhancedCopyMessages = [
+            ...((window as typeof window & { __enhancedCopyMessages?: unknown[] }).__enhancedCopyMessages || []),
+            message
+          ];
+          if ((message as { type?: string }).type === "ENHANCED_COPY_TEST_DESTINATION") {
+            return { ok: true, answer: "test ok", prompt: "test prompt", destination: "webhook" };
+          }
+          return { ok: true, answer: "webhook answer", text: "prompt text", destination: "webhook" };
+        }
+      });
+    });
+
+    await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+    await popup.getByLabel("Name").fill("My Webhook");
+    await popup.getByLabel("API URL").fill("https://api.example.com/enhanced-copy");
+    await popup.getByLabel("API key").fill("hook-key");
+    await popup.getByRole("button", { name: "Send test" }).click();
+    await expect(popup.getByText("Destination test passed")).toBeVisible();
+
+    await popup.getByRole("button", { name: "Save destination" }).click();
+    await expect(popup.getByText("Destination saved")).toBeVisible();
+    await expect(popup.locator("article").filter({ hasText: "My Webhook" })).toBeVisible();
+
+    await popup.getByRole("button", { name: "Ask Destination" }).click();
+    await expect(popup.getByText("webhook answer")).toBeVisible();
+
+    const messages = await popup.evaluate(
+      () => (window as typeof window & { __enhancedCopyMessages?: unknown[] }).__enhancedCopyMessages
+    );
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        type: "ENHANCED_COPY_ACTIVE_TAB",
+        intent: "ask",
+        destinationId: expect.stringMatching(/^dest_/)
+      })
+    );
   });
 });

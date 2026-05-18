@@ -34,6 +34,95 @@ export type EnhancedPromptInput = {
   options?: RenderOptions;
 };
 
+export type DestinationBase = {
+  name?: string;
+};
+
+export type ClipboardDestination = DestinationBase & {
+  type: "clipboard";
+};
+
+export type ChromeAiDestination = DestinationBase & {
+  type: "chrome-ai";
+  systemPrompt?: string;
+  topK?: number;
+  temperature?: number;
+};
+
+export type OllamaDestination = DestinationBase & {
+  type: "ollama";
+  baseUrl: string;
+  model: string;
+  apiKey?: string;
+};
+
+export type OpenAiCompatibleDestination = DestinationBase & {
+  type: "openai-compatible";
+  baseUrl: string;
+  model: string;
+  apiKey: string;
+  path?: string;
+};
+
+export type AnthropicDestination = DestinationBase & {
+  type: "anthropic";
+  baseUrl?: string;
+  model: string;
+  apiKey: string;
+  maxTokens?: number;
+  anthropicVersion?: string;
+};
+
+export type GeminiDestination = DestinationBase & {
+  type: "gemini";
+  baseUrl?: string;
+  model: string;
+  apiKey: string;
+};
+
+export type WebhookDestination = DestinationBase & {
+  type: "webhook";
+  url: string;
+  apiKey?: string;
+  authorizationHeader?: string;
+};
+
+export type EnhancedCopyDestination =
+  | ClipboardDestination
+  | ChromeAiDestination
+  | OllamaDestination
+  | OpenAiCompatibleDestination
+  | AnthropicDestination
+  | GeminiDestination
+  | WebhookDestination;
+
+export type SendOptions = {
+  destination?: EnhancedCopyDestination;
+  fetch?: typeof fetch;
+  clipboard?: Pick<Clipboard, "writeText">;
+  signal?: AbortSignal;
+};
+
+export type SendEnhancedPromptInput = EnhancedPromptInput & SendOptions;
+
+export type SendEnhancedPromptResult =
+  | {
+      ok: true;
+      destination: EnhancedCopyDestination["type"];
+      prompt: string;
+      responseText?: string;
+      raw?: unknown;
+      status?: number;
+    }
+  | {
+      ok: false;
+      destination: EnhancedCopyDestination["type"];
+      prompt: string;
+      error: Error;
+      status?: number;
+      raw?: unknown;
+    };
+
 export type CopyResult =
   | {
       ok: true;

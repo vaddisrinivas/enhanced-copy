@@ -1,9 +1,29 @@
-import { renderEnhancedPrompt, type PromptAction, type SourceContext } from "@enhanced-copy/core";
-import { ACTIONS, getSettings } from "./shared";
+import {
+  renderEnhancedPrompt,
+  sendEnhancedPrompt,
+  type EnhancedCopyDestination,
+  type PromptAction,
+  type SourceContext
+} from "@enhanced-copy/core";
+import { ACTIONS, getResolvedDestination, getSettings } from "./shared";
 
 type PageSelection = {
   content: string;
   source: SourceContext;
+};
+
+type CopyIntent = "copy" | "ask";
+
+type ActiveTabMessage = {
+  type: "ENHANCED_COPY_ACTIVE_TAB";
+  action?: PromptAction;
+  intent?: CopyIntent;
+  destinationId?: string;
+};
+
+type TestDestinationMessage = {
+  type: "ENHANCED_COPY_TEST_DESTINATION";
+  destination: EnhancedCopyDestination;
 };
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -29,47 +49,99 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (!tab?.id || !info.menuItemId.toString().startsWith("enhanced-copy-")) return;
   const action = info.menuItemId.toString().replace("enhanced-copy-", "") as PromptAction;
   if (!ACTIONS.some((item) => item.action === action)) return;
-  void copyFromActiveTab(tab.id, action);
+  void handleActiveTab(tab.id, { type: "ENHANCED_COPY_ACTIVE_TAB", action, intent: "copy" });
 });
 
 chrome.commands.onCommand.addListener((command) => {
   if (command !== "enhanced-copy-selection") return;
   void findCopyTargetTab().then(async (tabId) => {
-    if (tabId) await copyFromActiveTab(tabId);
+    if (tabId) await handleActiveTab(tabId, { type: "ENHANCED_COPY_ACTIVE_TAB", intent: "copy" });
   });
 });
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type !== "ENHANCED_COPY_ACTIVE_TAB") return false;
-  void findCopyTargetTab().then(async (tabId) => {
-    if (!tabId) {
-      sendResponse({ ok: false, error: "No active tab" });
-      return;
-    }
-    const result = await copyFromActiveTab(tabId, message.action as PromptAction | undefined);
-    sendResponse(result);
-  });
-  return true;
+chrome.runtime.onMessage.addListener((message: ActiveTabMessage | TestDestinationMessage, _sender, sendResponse) => {
+  if (message?.type === "ENHANCED_COPY_ACTIVE_TAB") {
+    void findCopyTargetTab().then(async (tabId) => {
+      if (!tabId) {
+        sendResponse({ ok: false, error: "No active tab" });
+        return;
+      }
+      sendResponse(await handleActiveTab(tabId, message));
+    });
+    return true;
+  }
+
+  if (message?.type === "ENHANCED_COPY_TEST_DESTINATION") {
+    void testDestination(message.destination).then(sendResponse);
+    return true;
+  }
+
+  return false;
 });
 
-async function copyFromActiveTab(tabId: number, action?: PromptAction): Promise<{ ok: boolean; text?: string; error?: string }> {
+async function handleActiveTab(
+  tabId: number,
+  message: ActiveTabMessage
+): Promise<{ ok: boolean; text?: string; answer?: string; error?: string; destination?: string }> {
   try {
     const settings = await getSettings();
     const page = await collectSelection(tabId);
     if (!page.content.trim()) return { ok: false, error: "Select text on the page first" };
 
-    const text = renderEnhancedPrompt({
+    const action = message.action || settings.action || "explain";
+    const promptInput = {
       content: page.content,
       source: page.source,
-      options: { ...settings, action: action || settings.action }
-    });
+      options: { ...settings, action }
+    };
 
+    if (message.intent === "ask") {
+      const destination = await getResolvedDestination(message.destinationId || settings.defaultDestinationId);
+      if (destination.type === "clipboard") {
+        const text = renderEnhancedPrompt(promptInput);
+        await writeText(tabId, text);
+        if (settings.rememberRecentPrompts) await saveRecentPrompt(text);
+        return { ok: true, text, destination: "clipboard" };
+      }
+
+      const result = await sendEnhancedPrompt({
+        ...promptInput,
+        destination,
+        fetch
+      });
+
+      if (!result.ok) return { ok: false, text: result.prompt, error: result.error.message, destination: result.destination };
+      if (settings.rememberRecentPrompts) await saveRecentPrompt(result.prompt);
+      return {
+        ok: true,
+        text: result.prompt,
+        answer: result.responseText,
+        destination: result.destination
+      };
+    }
+
+    const text = renderEnhancedPrompt(promptInput);
     await writeText(tabId, text);
     if (settings.rememberRecentPrompts) await saveRecentPrompt(text);
-    return { ok: true, text };
+    return { ok: true, text, destination: "clipboard" };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : String(error) };
   }
+}
+
+async function testDestination(
+  destination: EnhancedCopyDestination
+): Promise<{ ok: boolean; answer?: string; prompt?: string; error?: string; destination?: string }> {
+  const result = await sendEnhancedPrompt({
+    content: "Enhanced Copy connection test. Reply with a short confirmation.",
+    source: { title: "Enhanced Copy", label: "Connection test", contentType: "text" },
+    options: { action: "custom", customTask: "Reply with: Enhanced Copy destination is connected." },
+    destination,
+    fetch
+  });
+
+  if (!result.ok) return { ok: false, prompt: result.prompt, error: result.error.message, destination: result.destination };
+  return { ok: true, prompt: result.prompt, answer: result.responseText, destination: result.destination };
 }
 
 async function collectSelection(tabId: number): Promise<PageSelection> {
