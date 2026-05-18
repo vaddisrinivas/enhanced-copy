@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+import { fileURLToPath } from "node:url";
 
 export default defineConfig({
   test: {
@@ -13,8 +14,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@enhanced-copy/core": "/Users/srinivasvaddi/Projects/enhanced-copy/packages/core/src/index.ts",
-      "@enhanced-copy/react": "/Users/srinivasvaddi/Projects/enhanced-copy/packages/react/src/index.tsx"
+      "@enhanced-copy/core": fileURLToPath(new URL("./packages/core/src/index.ts", import.meta.url)),
+      "@enhanced-copy/react": fileURLToPath(new URL("./packages/react/src/index.tsx", import.meta.url))
     }
   }
 });
