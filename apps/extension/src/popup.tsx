@@ -31,7 +31,7 @@ function Popup() {
   const [settings, setSettings] = useState<ExtensionSettings>(DEFAULT_EXTENSION_SETTINGS);
   const [destinations, setDestinations] = useState<ExtensionDestination[]>(BUILT_IN_DESTINATIONS);
   const [recentPrompts, setRecentPrompts] = useState<string[]>([]);
-  const [status, setStatus] = useState("Select text, then copy or ask your model.");
+  const [status, setStatus] = useState("Select text, then run Enhanced Copy or ask your model.");
   const [answer, setAnswer] = useState("");
   const [lastPrompt, setLastPrompt] = useState("");
   const [busy, setBusy] = useState<"copy" | "ask" | "test" | "save" | "">("");
@@ -107,7 +107,7 @@ function Popup() {
 
       if (intent === "copy") {
         setLastPrompt(response.text || response.prompt || "");
-        setStatus(response.copied ? "Enhanced prompt copied" : "Prompt ready");
+        setStatus(response.copied ? "Enhanced copy ready" : "Enhanced copy ready");
       } else if (response.answer) {
         setAnswer(response.answer);
         setLastPrompt(response.text || response.prompt || "");
@@ -187,7 +187,7 @@ function Popup() {
 
   async function copyRecent(text: string) {
     await navigator.clipboard.writeText(text);
-    setStatus("Recent prompt copied");
+    setStatus("Recent enhanced copy restored");
   }
 
   async function copyAnswer() {
@@ -197,13 +197,13 @@ function Popup() {
 
   async function copyPrompt() {
     await navigator.clipboard.writeText(lastPrompt);
-    setStatus("Prompt copied");
+    setStatus("Enhanced copy restored");
   }
 
   async function clearRecent() {
     await clearRecentPrompts();
     setRecentPrompts([]);
-    setStatus("Recent prompts cleared");
+    setStatus("Recent Enhanced Copy items cleared");
   }
 
   async function ensurePermission(destination: ExtensionDestination): Promise<boolean> {
@@ -239,7 +239,7 @@ function Popup() {
     <main>
       <header>
         <h1>Enhanced Copy</h1>
-        <p>Copy prompts, ask Chrome AI, or send to your own API URL.</p>
+        <p>Run Enhanced Copy, ask Chrome AI, or send to your own API URL.</p>
       </header>
 
       <section className="panel">
@@ -273,7 +273,7 @@ function Popup() {
 
         <div className="cta-row">
           <button type="button" disabled={Boolean(busy)} className="primary" onClick={() => void runSelection("copy")}>
-            {busy === "copy" ? "Copying..." : "Copy Prompt"}
+            {busy === "copy" ? "Copying..." : "Enhanced Copy"}
           </button>
           <button
             type="button"
@@ -385,10 +385,10 @@ function Popup() {
           ) : null}
           {lastPrompt ? (
             <>
-              <h2>Prompt</h2>
+              <h2>Enhanced text</h2>
               <pre>{lastPrompt}</pre>
               <button type="button" onClick={() => void copyPrompt()}>
-                Copy prompt
+                Copy enhanced text
               </button>
             </>
           ) : null}
@@ -437,14 +437,14 @@ function Popup() {
             checked={settings.rememberRecentPrompts}
             onChange={(event) => void update({ rememberRecentPrompts: event.currentTarget.checked })}
           />
-          Remember explicit enhanced prompts
+          Remember explicit Enhanced Copy items
         </label>
       </details>
 
       {recentPrompts.length > 0 ? (
-        <section className="recent" aria-label="Recent explicit prompts">
+        <section className="recent" aria-label="Recent explicit Enhanced Copy items">
           <div className="section-head">
-            <h2>Recent explicit prompts</h2>
+            <h2>Recent Enhanced Copy</h2>
             <button type="button" onClick={() => void clearRecent()}>
               Clear
             </button>

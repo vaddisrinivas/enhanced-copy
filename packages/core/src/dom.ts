@@ -50,7 +50,7 @@ export function mountEnhancedCopy(options: MountEnhancedCopyOptions = {}): Enhan
     );
 
     if (result.ok) {
-      showToast("Enhanced prompt copied");
+      showToast("Enhanced copy ready");
       options.onCopied?.(result, element);
     } else {
       showCopyFallback(result.text);
@@ -75,7 +75,7 @@ export function mountEnhancedCopy(options: MountEnhancedCopyOptions = {}): Enhan
     const button = document.createElement("button");
     button.type = "button";
     button.className = "enhanced-copy-button";
-    button.title = "Copy an AI-ready prompt";
+    button.title = "Copy enhanced text for AI or sharing";
     button.textContent = labelFor(element, options, action);
     button.addEventListener("click", () => {
       void copyFromElement(element);

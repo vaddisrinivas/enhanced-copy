@@ -81,8 +81,8 @@ test.describe("Enhanced Copy extension", () => {
       });
     }, { ok: true, text: promptText, copied: true });
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popup.getByRole("button", { name: "Copy Prompt" }).click();
-    await expect(popup.getByText("Enhanced prompt copied")).toBeVisible();
+    await popup.getByRole("button", { name: "Enhanced Copy" }).click();
+    await expect(popup.getByText("Enhanced copy ready")).toBeVisible();
 
     const messages = await popup.evaluate(
       () => (window as typeof window & { __enhancedCopyMessages?: unknown[] }).__enhancedCopyMessages
@@ -110,7 +110,7 @@ test.describe("Enhanced Copy extension", () => {
       });
     });
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popup.getByRole("button", { name: "Copy Prompt" }).click();
+    await popup.getByRole("button", { name: "Enhanced Copy" }).click();
 
     await expect(popup.getByText("Select text on the page first")).toBeVisible();
   });
