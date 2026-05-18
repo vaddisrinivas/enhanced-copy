@@ -31,8 +31,7 @@ test.describe("Enhanced Copy extension", () => {
   test("does not inject persistent scripts or require broad host permissions", async () => {
     const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent("serviceworker"));
     const manifest = await worker.evaluate(() => chrome.runtime.getManifest());
-    const commands = await worker.evaluate(() => chrome.commands.getAll());
-    const shortcut = commands.find((command) => command.name === "enhanced-copy-selection")?.shortcut;
+    const shortcut = manifest.commands?.["enhanced-copy-selection"]?.suggested_key?.default;
 
     expect(manifest.content_scripts).toBeUndefined();
     expect(manifest.host_permissions).toBeUndefined();
