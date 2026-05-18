@@ -90,11 +90,11 @@ export function App() {
     <main>
       <section className="hero" aria-labelledby="hero-title">
         <div className="hero-copy">
-          <p className="eyebrow">Enhanced Copy for docs, repos, and posts</p>
-          <h1 id="hero-title">Copy should carry intent.</h1>
+          <p className="eyebrow">Provider-authored prompts for docs, repos, and posts</p>
+          <h1 id="hero-title">Let your site provide the prompt.</h1>
           <p className="lede">
-            Users already copy your docs into model chats, editors, issue trackers, and publishing tools.
-            Enhanced Copy turns that copy into source-aware, task-aware text for the next step.
+            Website owners know the prompt users need. Enhanced Copy puts that prompt behind Explain,
+            Debug, Summarize, Ask, and Share buttons so users can paste better input into their AI tool.
           </p>
           <div className="hero-actions">
             <EnhancedCopyButton
@@ -123,9 +123,9 @@ export function App() {
             </EnhancedCopyButton>
           </div>
           <div className="metrics" aria-label="Product constraints">
+            <span>Provider-authored prompts</span>
             <span>No model calls by default</span>
             <span>No background clipboard capture</span>
-            <span>SDK first, extension second</span>
           </div>
         </div>
 
@@ -149,8 +149,8 @@ export function App() {
           </div>
           <div className="copy-rail">
             <strong>The magic moment</strong>
-            <p>Same selected text. Better clipboard payload.</p>
-            <span>Use it in a model chat, code editor, issue tracker, community post, or private gateway.</span>
+            <p>The website supplies the prompt. The user keeps the choice of AI tool.</p>
+            <span>Copy provider-authored prompt + selected content + source context.</span>
           </div>
         </div>
       </section>

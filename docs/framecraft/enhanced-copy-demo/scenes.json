@@ -2,19 +2,19 @@
   "scenes": [
     {
       "custom_html": "docs/framecraft/enhanced-copy-demo/01-hook.html",
-      "narration": "Every AI workflow starts with copy. But raw copy throws away the intent.",
+      "narration": "The site usually knows the best prompt. But raw copy makes every user guess it again.",
       "voice": "andrew",
       "duration": 0
     },
     {
       "custom_html": "docs/framecraft/enhanced-copy-demo/02-magic.html",
-      "narration": "Enhanced Copy upgrades the clipboard payload. Source, task, content type, and the selected text move together.",
+      "narration": "Enhanced Copy puts the site-authored prompt on the clipboard with source, task, content type, and the selected text.",
       "voice": "andrew",
       "duration": 0
     },
     {
       "custom_html": "docs/framecraft/enhanced-copy-demo/03-sdk.html",
-      "narration": "Docs teams add one attribute. Explain, debug, summarize, ask, and share become native copy actions.",
+      "narration": "Docs teams write the prompt once. Explain, debug, summarize, ask, and share copy that prompt with the user's selected content.",
       "voice": "andrew",
       "duration": 0
     },
@@ -32,7 +32,7 @@
     },
     {
       "custom_html": "docs/framecraft/enhanced-copy-demo/06-end.html",
-      "narration": "Enhanced Copy. Copy should carry intent. Open source on GitHub.",
+      "narration": "Enhanced Copy. Let your site provide the prompt. Open source on GitHub.",
       "voice": "andrew",
       "duration": 0
     }

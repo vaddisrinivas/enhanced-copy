@@ -28,7 +28,7 @@ test("normal copy remains normal and not enhanced", async ({ page }) => {
 });
 
 test("demo renders SDK-first positioning", async ({ page }) => {
-  await expect(page.getByRole("heading", { name: "Copy should carry intent." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Let your site provide the prompt." })).toBeVisible();
   await expect(page.getByText("Not a bubble. Not a prompt library. Not a clipboard vacuum.")).toBeVisible();
   await expect(page.locator("[data-enhanced-copy]")).toHaveCount(4);
 });

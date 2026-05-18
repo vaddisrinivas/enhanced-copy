@@ -1,8 +1,8 @@
 # Enhanced Copy
 
-Source-aware copy buttons for AI workflows.
+Copy buttons that include the site's AI prompt.
 
-Enhanced Copy adds explicit copy actions to docs, repos, blogs, code blocks, issue templates, and social posts. It feels like an **Explain** button, but the output is portable: selected content is copied with source, task, content type, and safety context for the user's next AI step.
+Enhanced Copy lets website owners put exact AI prompts behind explicit copy buttons. It feels like an **Explain** button, but instead of answering in-place, it copies the provider-authored prompt plus selected content, source, content type, and safety context so users can paste it into the AI tool they already use.
 
 **Live demo:** [vaddisrinivas.github.io/enhanced-copy](https://vaddisrinivas.github.io/enhanced-copy/)
 
@@ -14,7 +14,15 @@ Enhanced Copy adds explicit copy actions to docs, repos, blogs, code blocks, iss
 
 ## The Problem
 
-People already copy your content into AI tools. The broken part is everything around the copied text.
+People already copy your content into AI tools. The broken part is that every user has to invent the prompt again.
+
+The website usually knows the right prompt:
+
+- docs know how an API should be explained
+- component pages know how code should be reused
+- issue templates know how bugs should be debugged
+- support pages know what context should be preserved
+- product pages know what should be shared
 
 Raw copy loses:
 
