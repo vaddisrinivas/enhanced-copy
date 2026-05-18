@@ -1,0 +1,47 @@
+{
+  "scenes": [
+    {
+      "custom_html": "docs/framecraft/enhanced-copy-demo/01-hook.html",
+      "narration": "Every AI workflow starts with copy. But raw copy throws away the intent.",
+      "voice": "andrew",
+      "duration": 0
+    },
+    {
+      "custom_html": "docs/framecraft/enhanced-copy-demo/02-magic.html",
+      "narration": "Enhanced Copy upgrades the clipboard payload. Source, task, content type, and the selected text move together.",
+      "voice": "andrew",
+      "duration": 0
+    },
+    {
+      "custom_html": "docs/framecraft/enhanced-copy-demo/03-sdk.html",
+      "narration": "Docs teams add one attribute. Explain, debug, summarize, ask, and share become native copy actions.",
+      "voice": "andrew",
+      "duration": 0
+    },
+    {
+      "custom_html": "docs/framecraft/enhanced-copy-demo/04-extension.html",
+      "narration": "Developers get the same workflow on any website through the Chrome extension, without background clipboard capture.",
+      "voice": "andrew",
+      "duration": 0
+    },
+    {
+      "custom_html": "docs/framecraft/enhanced-copy-demo/05-destinations.html",
+      "narration": "Clipboard by default. Chrome AI, Ollama, webhooks, and bring your own model APIs when the user chooses.",
+      "voice": "andrew",
+      "duration": 0
+    },
+    {
+      "custom_html": "docs/framecraft/enhanced-copy-demo/06-end.html",
+      "narration": "Enhanced Copy. Copy should carry intent. Open source on GitHub.",
+      "voice": "andrew",
+      "duration": 0
+    }
+  ],
+  "output": "docs/assets/enhanced-copy-demo.mp4",
+  "width": 1920,
+  "height": 1080,
+  "fps": 24,
+  "voice": "andrew",
+  "transition": "crossfade",
+  "transition_duration": 0.35
+}

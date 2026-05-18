@@ -191,13 +191,70 @@ button:hover,
   white-space: nowrap;
 }
 
-.hero-stage img {
-  display: block;
-  width: 100%;
-  min-height: 330px;
-  max-height: 460px;
-  object-fit: cover;
-  background: #05070d;
+.flow-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 128px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  min-height: 380px;
+  padding: 22px;
+  background:
+    radial-gradient(circle at 22% 20%, rgba(125, 211, 252, 0.16), transparent 30%),
+    radial-gradient(circle at 78% 72%, rgba(156, 255, 110, 0.12), transparent 34%),
+    #080c14;
+}
+
+.selection-card,
+.prompt-card,
+.arrow-card {
+  border: 1px solid #2c4058;
+  border-radius: 8px;
+  background: rgba(10, 15, 26, 0.92);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+}
+
+.selection-card,
+.prompt-card {
+  display: grid;
+  gap: 10px;
+  min-height: 230px;
+  padding: 14px;
+}
+
+.selection-card strong,
+.prompt-card strong {
+  color: #f8fbff;
+  font-size: 14px;
+}
+
+.selection-card pre {
+  margin: 0;
+  min-height: 156px;
+}
+
+.prompt-card {
+  border-color: #00c2a8;
+  background:
+    linear-gradient(135deg, rgba(0, 194, 168, 0.16), transparent),
+    #071414;
+}
+
+.prompt-card p {
+  color: #9cff6e;
+  font-size: 22px;
+  font-weight: 950;
+  line-height: 1.2;
+}
+
+.arrow-card {
+  display: grid;
+  place-items: center;
+  min-height: 62px;
+  background: #f8d66d;
+  color: #161007;
+  font-size: 13px;
+  font-weight: 950;
+  text-align: center;
 }
 
 .copy-rail {
@@ -501,6 +558,11 @@ pre {
 
   .hero-stage img {
     min-height: 240px;
+  }
+
+  .flow-board {
+    grid-template-columns: 1fr;
+    min-height: 0;
   }
 
   .popup-mock {

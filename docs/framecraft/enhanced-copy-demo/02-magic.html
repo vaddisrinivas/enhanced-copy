@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="./scene.css" />
+    <style>
+      .scene {
+        grid-template-rows: auto 1fr;
+        gap: 42px;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        gap: 34px;
+        align-items: stretch;
+      }
+
+      .label {
+        color: #f8d66d;
+        font-size: 28px;
+        font-weight: 950;
+        margin-bottom: 16px;
+      }
+
+      .arrow {
+        position: absolute;
+        left: 818px;
+        top: 570px;
+        border-radius: 999px;
+        background: #f8d66d;
+        color: #161007;
+        font-size: 24px;
+        font-weight: 950;
+        padding: 18px 26px;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="scene">
+      <div>
+        <p class="kicker fade-up">The magic moment</p>
+        <h2 class="fade-up delay-1">Same selection. Better clipboard payload.</h2>
+      </div>
+      <div class="split">
+        <div class="fade-up delay-2">
+          <div class="label">Raw copy</div>
+          <pre class="code">async function loadUsers() {
+  const response = await fetch("/api/users");
+  return response.json();
+}</pre>
+        </div>
+        <div class="fade-up delay-3">
+          <div class="label">Enhanced Copy</div>
+          <pre class="prompt">## Source
+- title: SDK docs
+- url: https://docs.example.com/sdk
+- content_type: code
+- language: ts
+
+## Task
+Debug this. Identify the likely issue and suggest a fix.
+
+## Copied Content
+```ts
+async function loadUsers() { ... }
+```</pre>
+        </div>
+      </div>
+      <div class="arrow pop delay-4">copy becomes context</div>
+    </section>
+  </body>
+</html>

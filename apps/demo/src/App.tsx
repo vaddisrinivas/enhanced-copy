@@ -2,32 +2,42 @@ import { useEffect } from "react";
 import { mountEnhancedCopy, renderEnhancedPrompt } from "@enhanced-copy/core";
 import { EnhancedCopyButton } from "@enhanced-copy/react";
 
-const framecraftUrl = "https://github.com/vaddisrinivas/framecraft";
+const productUrl = "https://github.com/vaddisrinivas/enhanced-copy";
 
-const framecraftDocs = `framecraft is an LLM skill and plugin for creating polished demo videos. You describe what you want; your LLM writes the HTML scenes, narration, and config, then framecraft renders everything into a real video. It is not a framework. It is a pipeline that gives your LLM the tools to produce real video.`;
+const docsText =
+  "Enhanced Copy is a drop-in SDK that turns selected docs, code blocks, support answers, changelogs, and issue templates into source-aware text for AI tools and sharing surfaces.";
 
-const framecraftInstall = `claude plugin marketplace add vaddisrinivas/framecraft
-claude plugin install framecraft
-uv run playwright install chromium`;
+const codeText = `async function loadUsers() {
+  const response = await fetch("/api/users");
+  if (!response.ok) throw new Error("Could not load users");
+  return response.json();
+}`;
 
-const framecraftIssue = `GitHub issue draft:
-Framecraft demo render looks correct locally, but the CI artifact misses voiceover on the second scene. Need a debugging prompt that preserves repo URL, install steps, output format, and exact failure context.`;
+const issueText =
+  "Bug: selected code snippets lose indentation when users paste raw docs into an AI chat. Add a Debug copy action that carries task, source URL, content type, and safety context.";
 
-const redditPost = `I keep copying README chunks into ChatGPT and then typing "explain this" again. The copy event should carry the task, source URL, and selected content so paste targets get useful context immediately.`;
+const redditPost =
+  "I keep copying README chunks into ChatGPT and then typing the same wrapper again. Copy should carry the task, source URL, and selected content so paste targets get useful context immediately.";
 
-const linkedInPost = `Every docs page already has Copy. The AI-era version is not "answer here." It is "copy with enough intent that the user can paste anywhere."`;
+const linkedInPost =
+  "Every docs page already has Copy. The AI-era version is not answer-here. It is copy with enough intent that the user can paste anywhere.";
 
-const rawCopy = `framecraft is an LLM skill and plugin for creating polished demo videos. You describe what you want; your LLM writes the HTML scenes...`;
+const rawCopy = `async function loadUsers() {
+  const response = await fetch("/api/users");
+  if (!response.ok) throw new Error("Could not load users");
+  return response.json();
+}`;
 
 const enhancedPreview = renderEnhancedPrompt({
-  content: framecraftDocs,
+  content: rawCopy,
   source: {
-    title: "framecraft README",
-    url: framecraftUrl,
-    label: "Product README excerpt",
-    contentType: "markdown"
+    title: "Enhanced Copy SDK docs",
+    url: productUrl,
+    label: "Fetch helper",
+    contentType: "code",
+    language: "ts"
   },
-  options: { action: "explain", maxChars: 4000 }
+  options: { action: "debug", maxChars: 4000 }
 });
 
 const destinationCode = `await sendEnhancedPrompt({
@@ -35,7 +45,7 @@ const destinationCode = `await sendEnhancedPrompt({
   source: {
     title: document.title,
     url: location.href,
-    label: "Framecraft docs block"
+    label: "Selected docs block"
   },
   options: { action: "debug" },
   destination: {
@@ -48,8 +58,8 @@ const destinationCode = `await sendEnhancedPrompt({
 
 const sdkCode = `<article
   data-enhanced-copy="explain"
-  data-enhanced-copy-title="framecraft README"
-  data-enhanced-copy-url="https://github.com/vaddisrinivas/framecraft">
+  data-enhanced-copy-title="SDK docs"
+  data-enhanced-copy-url="https://docs.example.com/sdk">
   ...
 </article>
 
@@ -83,25 +93,25 @@ export function App() {
           <div className="hero-actions">
             <EnhancedCopyButton
               className="primary"
-              content={framecraftDocs}
+              content={docsText}
               action="explain"
-              source={{ title: "framecraft README", url: framecraftUrl, label: "README excerpt", contentType: "markdown" }}
+              source={{ title: "Enhanced Copy docs", url: productUrl, label: "Docs excerpt", contentType: "markdown" }}
             >
-              Explain Framecraft
+              Explain Docs
             </EnhancedCopyButton>
             <EnhancedCopyButton
               className="danger"
-              content={framecraftInstall}
+              content={codeText}
               action="debug"
-              source={{ title: "framecraft install", url: framecraftUrl, label: "Install commands", contentType: "code", language: "bash" }}
+              source={{ title: "Enhanced Copy SDK", url: productUrl, label: "Fetch code sample", contentType: "code", language: "ts" }}
             >
-              Debug Install
+              Debug Code
             </EnhancedCopyButton>
             <EnhancedCopyButton
               className="electric"
               content={linkedInPost}
               action="share"
-              source={{ title: "Enhanced Copy launch note", url: window.location.href, label: "LinkedIn draft" }}
+              source={{ title: "Enhanced Copy launch note", url: productUrl, label: "LinkedIn draft" }}
             >
               Share
             </EnhancedCopyButton>
@@ -113,18 +123,28 @@ export function App() {
           </div>
         </div>
 
-        <div className="hero-stage" aria-label="Framecraft enhanced copy demo">
+        <div className="hero-stage" aria-label="Enhanced Copy flow demo">
           <div className="browser-top">
             <span />
             <span />
             <span />
-            <strong>github.com/vaddisrinivas/framecraft</strong>
+            <strong>docs.example.com/sdk/get-started</strong>
           </div>
-          <img src="/framecraft-demo-preview.gif" alt="Framecraft demo preview" />
+          <div className="flow-board">
+            <div className="selection-card">
+              <strong>Selected code</strong>
+              <pre>{rawCopy}</pre>
+            </div>
+            <div className="arrow-card">Enhanced Copy</div>
+            <div className="prompt-card">
+              <strong>AI-ready output</strong>
+              <p>Source + task + fenced content + safety boundary.</p>
+            </div>
+          </div>
           <div className="copy-rail">
-            <strong>Selected README text</strong>
-            <p>{rawCopy}</p>
-            <span>Enhanced Copy adds the missing task, source, and safety wrapper.</span>
+            <strong>The magic moment</strong>
+            <p>Same selected text. Better clipboard payload.</p>
+            <span>Paste into ChatGPT, Claude, Cursor, GitHub, Reddit, LinkedIn, or your own model.</span>
           </div>
         </div>
       </section>
@@ -161,45 +181,45 @@ export function App() {
         </div>
       </section>
 
-      <section className="world" aria-label="Framecraft examples">
+      <section className="world" aria-label="Enhanced Copy examples">
         <div className="section-headline">
-          <p className="section-kicker">Real repo demo</p>
-          <h2>Framecraft becomes an AI-ready documentation surface.</h2>
+          <p className="section-kicker">SDK demo</p>
+          <h2>Every copyable block can become an AI-ready action.</h2>
           <p>
-            This page uses <a href={framecraftUrl}>github.com/vaddisrinivas/framecraft</a> as the demo subject:
-            README copy, install commands, issue context, Reddit phrasing, and launch sharing.
+            Docs text, code, issue templates, Reddit posts, LinkedIn drafts, and support answers can each render
+            a different enhanced-copy action while normal copy stays untouched.
           </p>
         </div>
 
         <div className="arena">
           <article>
             <div className="panel-heading">
-              <span>README excerpt</span>
+              <span>Docs excerpt</span>
               <small>Explain</small>
             </div>
             <p
               data-enhanced-copy="explain"
-              data-enhanced-copy-title="framecraft README"
-              data-enhanced-copy-url={framecraftUrl}
-              data-enhanced-copy-label="README positioning"
+              data-enhanced-copy-title="Enhanced Copy docs"
+              data-enhanced-copy-url={productUrl}
+              data-enhanced-copy-label="Docs positioning"
             >
-              {framecraftDocs}
+              {docsText}
             </p>
           </article>
 
           <article>
             <div className="panel-heading">
-              <span>Install block</span>
+              <span>Code block</span>
               <small>Debug</small>
             </div>
             <pre
               data-enhanced-copy="debug"
               data-enhanced-copy-type="code"
-              data-enhanced-copy-title="framecraft install"
-              data-enhanced-copy-url={framecraftUrl}
-              data-enhanced-copy-label="Install commands"
+              data-enhanced-copy-title="Enhanced Copy SDK"
+              data-enhanced-copy-url={productUrl}
+              data-enhanced-copy-label="Fetch code sample"
             >
-              <code className="language-bash">{framecraftInstall}</code>
+              <code className="language-ts">{codeText}</code>
             </pre>
           </article>
 
@@ -210,11 +230,11 @@ export function App() {
             </div>
             <p
               data-enhanced-copy="ask"
-              data-enhanced-copy-title="framecraft issue draft"
-              data-enhanced-copy-url={`${framecraftUrl}/issues/new`}
+              data-enhanced-copy-title="Enhanced Copy issue draft"
+              data-enhanced-copy-url={`${productUrl}/issues/new`}
               data-enhanced-copy-label="GitHub issue"
             >
-              {framecraftIssue}
+              {issueText}
             </p>
           </article>
 
@@ -241,7 +261,7 @@ export function App() {
           <h2>Works on any website after the user selects text.</h2>
           <p>
             Context menu, popup, and shortcut all use activeTab. No persistent content script. No global copy hijack.
-            Recent enhanced prompts behave like a tiny clipboard manager, but only for explicit enhanced-copy actions.
+            Recent enhanced outputs behave like a tiny clipboard manager, but only for explicit Enhanced Copy actions.
           </p>
         </div>
         <div className="popup-mock" aria-label="Extension popup mock">
@@ -265,7 +285,7 @@ export function App() {
             <button type="button">Enhanced Copy</button>
             <button type="button">Ask Model</button>
           </div>
-          <div className="recent-line">Recent Enhanced Copy: framecraft CI voiceover debug</div>
+          <div className="recent-line">Recent Enhanced Copy: API debugging context</div>
         </div>
       </section>
 

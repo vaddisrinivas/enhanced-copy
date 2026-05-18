@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="./scene.css" />
+    <style>
+      .scene {
+        align-content: center;
+        gap: 42px;
+      }
+
+      .copy-chaos {
+        position: relative;
+        height: 330px;
+      }
+
+      .fragment {
+        position: absolute;
+        min-width: 360px;
+        border: 1px solid #334862;
+        border-radius: 14px;
+        background: #0d1422;
+        color: #c7d2e1;
+        font-size: 25px;
+        font-weight: 850;
+        padding: 22px 26px;
+      }
+
+      .fragment:nth-child(1) {
+        top: 10px;
+        left: 70px;
+        transform: rotate(-4deg);
+      }
+
+      .fragment:nth-child(2) {
+        top: 120px;
+        left: 420px;
+        transform: rotate(3deg);
+      }
+
+      .fragment:nth-child(3) {
+        top: 32px;
+        right: 110px;
+        transform: rotate(5deg);
+      }
+
+      .fragment:nth-child(4) {
+        bottom: 0;
+        right: 360px;
+        transform: rotate(-2deg);
+      }
+
+      .missing {
+        color: #ff8a8f;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="scene">
+      <p class="kicker fade-up">Every AI workflow starts with copy</p>
+      <h1 class="fade-up delay-1">Raw copy throws away the intent.</h1>
+      <p class="subtitle fade-up delay-2">
+        The text moves. The task, source URL, content type, and safety boundary disappear.
+      </p>
+      <div class="copy-chaos">
+        <div class="fragment pop delay-1">selected code</div>
+        <div class="fragment pop delay-2 missing">missing task</div>
+        <div class="fragment pop delay-3 missing">missing source</div>
+        <div class="fragment pop delay-4 missing">missing context</div>
+      </div>
+    </section>
+  </body>
+</html>

@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="./scene.css" />
+    <style>
+      .scene {
+        align-content: center;
+        gap: 42px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 22px;
+      }
+
+      .card {
+        display: grid;
+        gap: 16px;
+        min-height: 250px;
+        padding: 28px;
+      }
+
+      .card strong {
+        color: #f8d66d;
+        font-size: 32px;
+      }
+
+      .card p {
+        color: #c7d2e1;
+        font-size: 25px;
+        line-height: 1.36;
+      }
+
+      .trust {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="scene">
+      <div>
+        <p class="kicker fade-up">Destination API</p>
+        <h2 class="fade-up delay-1">Clipboard by default. Models by choice.</h2>
+      </div>
+      <div class="grid">
+        <div class="card pop delay-1"><strong>Chrome AI</strong><p>Invoke the local model when the browser exposes it.</p></div>
+        <div class="card pop delay-2"><strong>Ollama</strong><p>Send selected context to localhost models.</p></div>
+        <div class="card pop delay-3"><strong>BYOK APIs</strong><p>OpenAI-compatible, Anthropic, Gemini, or private gateways.</p></div>
+        <div class="card pop delay-4"><strong>Webhook</strong><p>Your backend, your routing, your policy.</p></div>
+      </div>
+      <div class="trust fade-up delay-4">
+        <span class="pill hot">No all_urls</span>
+        <span class="pill">Session keys</span>
+        <span class="pill">Explicit actions only</span>
+        <span class="pill warn">Normal copy untouched</span>
+      </div>
+    </section>
+  </body>
+</html>
