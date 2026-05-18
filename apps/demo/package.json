@@ -1,0 +1,15 @@
+{
+  "name": "enhanced-copy-demo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@enhanced-copy/core": "file:../../packages/core",
+    "@enhanced-copy/react": "file:../../packages/react"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5173",
+    "build": "vite build",
+    "preview": "vite preview"
+  }
+}

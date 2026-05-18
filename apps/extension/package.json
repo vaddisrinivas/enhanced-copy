@@ -1,0 +1,12 @@
+{
+  "name": "enhanced-copy-extension",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@enhanced-copy/core": "file:../../packages/core"
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-extension.mjs"
+  }
+}

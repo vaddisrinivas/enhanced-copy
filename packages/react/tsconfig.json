@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "paths": {
+      "@enhanced-copy/core": ["../core/dist/index.d.ts"]
+    }
+  },
+  "include": ["src/**/*.tsx", "src/**/*.ts"]
+}
