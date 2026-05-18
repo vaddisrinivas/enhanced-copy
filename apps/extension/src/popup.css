@@ -118,6 +118,11 @@ button:hover {
   border-color: #64748b;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
 .primary {
   border-color: #00a991;
   background: #00a991;
@@ -135,6 +140,22 @@ button:hover {
   background: #fff7ed;
   color: #9a3412;
   padding: 8px;
+}
+
+.status {
+  border: 1px solid #bfd4ea;
+  border-radius: 8px;
+  background: #eaf5ff;
+  color: #1d4e89;
+  font-weight: 800;
+  padding: 8px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 article {
@@ -175,13 +196,4 @@ pre {
   padding: 10px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-}
-
-footer {
-  border-top: 1px solid #d6e0eb;
-  background: #f8fbff;
-  color: #526173;
-  font-size: 12px;
-  font-weight: 800;
-  padding: 10px 0 0;
 }

@@ -6,7 +6,7 @@ Enhanced Copy does **not** watch the clipboard. It renders a structured prompt a
 
 ## Product Wedge
 
-Add **Explain / Debug / Summarize / Ask AI / Share** actions to any content block in minutes.
+Add **Explain / Debug / Summarize / Ask Prompt / Share** actions to any content block in minutes.
 
 ```html
 <p data-enhanced-copy="explain">
@@ -75,6 +75,7 @@ The default destination is `clipboard`. Optional destinations:
 - `anthropic`: Claude Messages API.
 - `gemini`: Gemini `generateContent`.
 - `webhook`: generic `POST` to your API URL.
+- `custom`: SDK-only executor function for providers not built into core.
 
 Webhook body:
 
@@ -87,18 +88,27 @@ Webhook body:
 }
 ```
 
+Webhook privacy rules:
+
+- `content` is truncated with the same `maxChars` limit as the prompt.
+- `source.title` and `source.url` obey `includeTitle` / `includeSourceUrl`.
+- `options` is sanitized to render options only; extension settings and destination keys are never included.
+
 ## Extension
 
 The extension is not the product. It is a reference/dogfood surface.
 
 - Uses `activeTab` + `scripting`.
 - No `<all_urls>` host permission.
+- No optional host permissions.
 - No persistent content script.
 - No background normal-copy capture.
 - Copies only selected text after popup/context-menu/shortcut action.
 - Shortcut uses `Alt+Shift+C` because Chromium leaves `Command+Shift+C` unassigned in common dev-tool conflicts.
-- Users can add API URL + API key destinations. The extension requests optional host permission only for that API origin.
-- API keys are BYOK and stored locally. Session-only keys use `chrome.storage.session` when available.
+- Users can add API URL + API key destinations. Endpoints must allow browser-extension CORS.
+- Destination URLs are HTTPS-only, except localhost HTTP for Ollama/local gateways.
+- API keys are BYOK and session-only. They are kept in `chrome.storage.session`, never persisted to `chrome.storage.local`.
+- Native Anthropic/Gemini destinations use official API origins. Custom gateways should use `webhook` or `openai-compatible`.
 
 Build and load unpacked:
 

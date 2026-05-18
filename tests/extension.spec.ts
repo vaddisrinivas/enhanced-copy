@@ -36,12 +36,12 @@ test.describe("Enhanced Copy extension", () => {
 
     expect(manifest.content_scripts).toBeUndefined();
     expect(manifest.host_permissions).toBeUndefined();
-    expect(manifest.optional_host_permissions).toEqual(["http://*/*", "https://*/*"]);
+    expect(manifest.optional_host_permissions).toBeUndefined();
     expect(manifest.permissions).toEqual(expect.arrayContaining(["activeTab", "scripting", "clipboardWrite"]));
     expect(shortcut).toBeTruthy();
   });
 
-  test("popup writes a structured prompt returned by the background flow", async () => {
+  test("popup requests a structured prompt copy from the active tab", async () => {
     const page = await context.newPage();
     await context.grantPermissions(["clipboard-read", "clipboard-write"], {
       origin: "http://127.0.0.1:4173"
@@ -79,25 +79,23 @@ test.describe("Enhanced Copy extension", () => {
           return response;
         }
       });
-    }, { ok: true, text: promptText });
+    }, { ok: true, text: promptText, copied: true });
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
     await popup.getByRole("button", { name: "Copy Prompt" }).click();
     await expect(popup.getByText("Enhanced prompt copied")).toBeVisible();
 
-    const clipboard = await page.evaluate(() => navigator.clipboard.readText());
     const messages = await popup.evaluate(
       () => (window as typeof window & { __enhancedCopyMessages?: unknown[] }).__enhancedCopyMessages
     );
-    expect(messages).toContainEqual({
-      type: "ENHANCED_COPY_ACTIVE_TAB",
-      intent: "copy",
-      action: "explain",
-      destinationId: "clipboard"
-    });
-    expect(clipboard).toContain("## Source");
-    expect(clipboard).toContain("- title: GitHub Issue Fixture");
-    expect(clipboard).toContain("## Task\nExplain this clearly and help me use it.");
-    expect(clipboard).toContain("GitHub fixture");
+    expect(messages).toContainEqual(
+      expect.objectContaining({
+        type: "ENHANCED_COPY_ACTIVE_TAB",
+        intent: "copy",
+        action: "explain",
+        destinationId: "clipboard",
+        targetTabId: expect.any(Number)
+      })
+    );
   });
 
   test("popup reports missing selection instead of copying whole page", async () => {
@@ -117,17 +115,16 @@ test.describe("Enhanced Copy extension", () => {
     await expect(popup.getByText("Select text on the page first")).toBeVisible();
   });
 
+  test("popup refuses to ask when clipboard is selected", async () => {
+    const popup = await context.newPage();
+    await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+
+    await expect(popup.getByRole("button", { name: "Pick Model First" })).toBeDisabled();
+  });
+
   test("popup saves a BYOK webhook destination and asks it", async () => {
     const popup = await context.newPage();
     await popup.addInitScript(() => {
-      Object.defineProperty(chrome.permissions, "contains", {
-        configurable: true,
-        value: async () => true
-      });
-      Object.defineProperty(chrome.permissions, "request", {
-        configurable: true,
-        value: async () => true
-      });
       Object.defineProperty(chrome.runtime, "sendMessage", {
         configurable: true,
         value: async (message: unknown) => {
@@ -144,8 +141,9 @@ test.describe("Enhanced Copy extension", () => {
     });
 
     await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+    await popup.getByText("Add API destination").click();
     await popup.getByLabel("Name").fill("My Webhook");
-    await popup.getByLabel("API URL").fill("https://api.example.com/enhanced-copy");
+    await popup.getByLabel("Webhook URL").fill("https://api.example.com/enhanced-copy");
     await popup.getByLabel("API key").fill("hook-key");
     await popup.getByRole("button", { name: "Send test" }).click();
     await expect(popup.getByText("Destination test passed")).toBeVisible();
@@ -154,7 +152,7 @@ test.describe("Enhanced Copy extension", () => {
     await expect(popup.getByText("Destination saved")).toBeVisible();
     await expect(popup.locator("article").filter({ hasText: "My Webhook" })).toBeVisible();
 
-    await popup.getByRole("button", { name: "Ask Destination" }).click();
+    await popup.getByRole("button", { name: "Ask Model" }).click();
     await expect(popup.getByText("webhook answer")).toBeVisible();
 
     const messages = await popup.evaluate(

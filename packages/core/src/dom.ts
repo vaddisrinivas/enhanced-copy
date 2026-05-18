@@ -139,7 +139,7 @@ function labelFor(element: Element, options: MountEnhancedCopyOptions, action: P
   if (action === "explain") return "Explain";
   if (action === "debug") return "Debug";
   if (action === "summarize") return "Summarize";
-  if (action === "ask") return "Ask AI";
+  if (action === "ask") return "Ask Prompt";
   if (action === "share") return "Share";
   return "Copy AI Prompt";
 }

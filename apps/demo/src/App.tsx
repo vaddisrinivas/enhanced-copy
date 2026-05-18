@@ -70,7 +70,7 @@ export function App() {
               Debug
             </EnhancedCopyButton>
             <EnhancedCopyButton className="electric" content={issueText} action="ask" question="What should I try next?">
-              Ask AI
+              Copy Ask Prompt
             </EnhancedCopyButton>
           </div>
         </div>

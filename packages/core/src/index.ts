@@ -10,6 +10,7 @@ export type {
   ContentFormat,
   CopyOptions,
   CopyResult,
+  CustomDestination,
   EnhancedCopyAction,
   EnhancedCopyConfig,
   EnhancedCopyController,

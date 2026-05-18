@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_EXTENSION_SETTINGS, destinationFromForm, destinationPermissionPattern } from "./shared";
+import { DEFAULT_EXTENSION_SETTINGS, destinationFromForm, destinationPermissionPattern, validateDestinationNetwork } from "./shared";
 
 describe("extension settings", () => {
   it("defaults to explicit prompt copy with clipboard destination", () => {
@@ -16,8 +16,7 @@ describe("extension settings", () => {
         type: "ollama",
         apiUrl: "http://127.0.0.1:11434",
         apiKey: "",
-        model: "gemma3",
-        sessionOnly: true
+        model: "gemma3"
       })
     ).toMatchObject({
       name: "Local Ollama",
@@ -52,5 +51,7 @@ describe("extension settings", () => {
     expect(destinationPermissionPattern({ type: "ollama", baseUrl: "http://127.0.0.1:11434", model: "gemma3" })).toBe(
       "http://127.0.0.1:11434/*"
     );
+    expect(destinationPermissionPattern({ type: "webhook", url: "http://api.example.com/path", apiKey: "x" })).toBeUndefined();
+    expect(validateDestinationNetwork({ type: "webhook", url: "http://api.example.com/path", apiKey: "x" })).toContain("HTTPS");
   });
 });

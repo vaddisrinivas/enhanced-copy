@@ -2,9 +2,8 @@
   "manifest_version": 3,
   "name": "Enhanced Copy",
   "version": "0.1.0",
-  "description": "Copy upgraded text with source, intent, and formatting for AI tools or sharing.",
+  "description": "Copy AI-ready prompts with source and task, or send selected text to your chosen model.",
   "permissions": ["contextMenus", "storage", "activeTab", "scripting", "clipboardWrite"],
-  "optional_host_permissions": ["http://*/*", "https://*/*"],
   "background": {
     "service_worker": "background.js",
     "type": "module"

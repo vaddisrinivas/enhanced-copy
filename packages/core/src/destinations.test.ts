@@ -119,9 +119,14 @@ describe("sendEnhancedPrompt", () => {
     const fetcher = vi.fn(async () => jsonResponse({ answer: "hook answer" }));
 
     const result = await sendEnhancedPrompt({
-      content: "ship this",
-      source: { title: "Docs" },
-      options: { action: "share" },
+      content: `ship this ${"x".repeat(40)}`,
+      source: { title: "Docs", url: "https://private.example.com/docs" },
+      options: {
+        action: "share",
+        maxChars: 12,
+        includeSourceUrl: false,
+        destinations: [{ apiKey: "leak-me" }]
+      } as never,
       destination: { type: "webhook", url: "https://hooks.example.com/enhance", apiKey: "hook-key" },
       fetch: fetcher
     });
@@ -133,8 +138,39 @@ describe("sendEnhancedPrompt", () => {
       action: "share",
       prompt: expect.stringContaining("## Task"),
       source: { title: "Docs" },
-      content: "ship this"
+      content: "ship this xx",
+      options: {
+        action: "share",
+        maxChars: 12,
+        includeSourceUrl: false
+      }
     });
+    expect(JSON.stringify(body)).not.toContain("leak-me");
+    expect(JSON.stringify(body)).not.toContain("private.example.com");
+  });
+
+  it("does not return success when a provider response has no answer text", async () => {
+    const result = await sendEnhancedPrompt({
+      content: "empty",
+      destination: { type: "webhook", url: "https://hooks.example.com/enhance" },
+      fetch: vi.fn(async () => jsonResponse({ ok: true }))
+    });
+
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.error.message).toContain("No text response");
+    expect(!result.ok && result.raw).toEqual({ ok: true });
+  });
+
+  it("keeps status and raw payload on failed HTTP requests", async () => {
+    const result = await sendEnhancedPrompt({
+      content: "fail",
+      destination: { type: "openai-compatible", baseUrl: "https://api.example.com/v1", apiKey: "sk", model: "gpt" },
+      fetch: vi.fn(async () => jsonResponse({ error: { message: "bad key" } }, 401))
+    });
+
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.status).toBe(401);
+    expect(!result.ok && result.raw).toEqual({ error: { message: "bad key" } });
   });
 
   it("uses Chrome built-in AI when available", async () => {
@@ -153,15 +189,39 @@ describe("sendEnhancedPrompt", () => {
     expect(destroy).toHaveBeenCalled();
   });
 
+  it("supports SDK-only custom destination executors", async () => {
+    const send = vi.fn(async ({ prompt }: { prompt: string }) => ({
+      responseText: `custom: ${prompt.includes("## Task")}`,
+      raw: { provider: "mine" },
+      status: 299
+    }));
+
+    const result = await sendEnhancedPrompt({
+      content: "route this",
+      destination: { type: "custom", name: "My provider", send }
+    });
+
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ prompt: expect.stringContaining("route this") }));
+    expect(result).toMatchObject({
+      ok: true,
+      destination: "custom",
+      responseText: "custom: true",
+      status: 299,
+      raw: { provider: "mine" }
+    });
+  });
+
   it("returns request URLs for permission prompts", () => {
     const destinations: EnhancedCopyDestination[] = [
       { type: "clipboard" },
       { type: "chrome-ai" },
+      { type: "custom", send: async () => ({ responseText: "ok" }) },
       { type: "ollama", baseUrl: "http://127.0.0.1:11434", model: "gemma3" },
       { type: "webhook", url: "https://api.example.com/hook" }
     ];
 
     expect(destinations.map(destinationRequestUrl)).toEqual([
+      undefined,
       undefined,
       undefined,
       "http://127.0.0.1:11434/api/chat",

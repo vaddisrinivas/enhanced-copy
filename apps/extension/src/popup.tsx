@@ -7,29 +7,23 @@ import {
   CLIPBOARD_DESTINATION_ID,
   DEFAULT_EXTENSION_SETTINGS,
   DESTINATION_KINDS,
+  clearRecentPrompts,
   deleteDestination,
   destinationFromForm,
   destinationLabel,
-  destinationPermissionPattern,
   getAllDestinations,
   getSettings,
   kindLabel,
   saveDestination,
   saveSettings,
+  validateDestinationNetwork,
   type DestinationKind,
+  type ExtensionRequest,
+  type ExtensionResponse,
   type ExtensionDestination,
   type ExtensionSettings
 } from "./shared";
 import "./popup.css";
-
-type ExtensionResponse = {
-  ok: boolean;
-  text?: string;
-  answer?: string;
-  prompt?: string;
-  destination?: string;
-  error?: string;
-};
 
 type Intent = "copy" | "ask";
 
@@ -40,13 +34,13 @@ function Popup() {
   const [status, setStatus] = useState("Select text, then copy or ask your model.");
   const [answer, setAnswer] = useState("");
   const [lastPrompt, setLastPrompt] = useState("");
+  const [busy, setBusy] = useState<"copy" | "ask" | "test" | "save" | "">("");
   const [form, setForm] = useState({
     name: "",
     type: "webhook" as DestinationKind,
     apiUrl: "",
     apiKey: "",
-    model: "",
-    sessionOnly: true
+    model: ""
   });
 
   const selectedDestination = useMemo(
@@ -81,40 +75,52 @@ function Popup() {
     setAnswer("");
     setLastPrompt("");
 
-    if (intent === "ask" && selectedDestination.id !== CLIPBOARD_DESTINATION_ID) {
-      const allowed = await ensurePermission(selectedDestination);
-      if (!allowed) return;
-    }
-
-    const response = (await chrome.runtime
-      .sendMessage({
-        type: "ENHANCED_COPY_ACTIVE_TAB",
-        intent,
-        action,
-        destinationId: selectedDestination.id
-      })
-      .catch((error) => ({ ok: false, error: error.message }))) as ExtensionResponse;
-
-    if (!response.ok) {
-      setStatus(response.error || "Request failed");
-      if (response.text || response.prompt) setLastPrompt(response.text || response.prompt || "");
+    if (intent === "ask" && selectedDestination.id === CLIPBOARD_DESTINATION_ID) {
+      setStatus("Choose a model destination first");
       return;
     }
 
-    if (intent === "copy") {
-      if (response.text) await writeClipboardBestEffort(response.text);
-      setStatus("Enhanced prompt copied");
-    } else if (response.answer) {
-      setAnswer(response.answer);
-      setLastPrompt(response.text || response.prompt || "");
-      setStatus(`Answer ready from ${response.destination || selectedDestination.type}`);
-    } else {
-      if (response.text) await writeClipboardBestEffort(response.text);
-      setLastPrompt(response.text || response.prompt || "");
-      setStatus("Prompt copied");
-    }
+    setBusy(intent);
+    try {
+      if (intent === "ask" && selectedDestination.id !== CLIPBOARD_DESTINATION_ID) {
+        const allowed = await ensurePermission(selectedDestination);
+        if (!allowed) return;
+      }
 
-    await refreshRecentPrompts();
+      const targetTabId = await getActiveTabId();
+      const message: ExtensionRequest = {
+        type: "ENHANCED_COPY_ACTIVE_TAB",
+        intent,
+        action,
+        destinationId: selectedDestination.id,
+        targetTabId
+      };
+      const response = (await chrome.runtime
+        .sendMessage(message)
+        .catch((error) => ({ ok: false, error: error.message }))) as ExtensionResponse;
+
+      if (!response.ok) {
+        setStatus(response.error || "Request failed");
+        if (response.text || response.prompt) setLastPrompt(response.text || response.prompt || "");
+        return;
+      }
+
+      if (intent === "copy") {
+        setLastPrompt(response.text || response.prompt || "");
+        setStatus(response.copied ? "Enhanced prompt copied" : "Prompt ready");
+      } else if (response.answer) {
+        setAnswer(response.answer);
+        setLastPrompt(response.text || response.prompt || "");
+        setStatus(`Answer ready from ${response.destination || selectedDestination.type}`);
+      } else {
+        setLastPrompt(response.text || response.prompt || "");
+        setStatus("No answer returned");
+      }
+
+      await refreshRecentPrompts();
+    } finally {
+      setBusy("");
+    }
   }
 
   async function saveFormDestination() {
@@ -125,15 +131,22 @@ function Popup() {
       return;
     }
 
-    const allowed = await ensurePermission(destination);
-    if (!allowed) return;
+    setBusy("save");
+    try {
+      const allowed = await ensurePermission(destination);
+      if (!allowed) return;
 
-    const saved = await saveDestination(destination);
-    await saveSettings({ defaultDestinationId: saved.id });
-    setSettings((current) => ({ ...current, defaultDestinationId: saved.id }));
-    setForm({ ...form, name: "", apiKey: "" });
-    await refreshAll();
-    setStatus("Destination saved");
+      const saved = await saveDestination(destination);
+      await saveSettings({ defaultDestinationId: saved.id });
+      setSettings((current) => ({ ...current, defaultDestinationId: saved.id }));
+      setForm({ ...form, name: "", apiKey: "" });
+      await refreshAll();
+      setStatus("Destination saved. API key kept for this browser session only.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy("");
+    }
   }
 
   async function testFormDestination() {
@@ -144,20 +157,25 @@ function Popup() {
       return;
     }
 
-    const allowed = await ensurePermission(destination);
-    if (!allowed) return;
+    setBusy("test");
+    try {
+      const allowed = await ensurePermission(destination);
+      if (!allowed) return;
 
-    const response = (await chrome.runtime
-      .sendMessage({ type: "ENHANCED_COPY_TEST_DESTINATION", destination })
-      .catch((error) => ({ ok: false, error: error.message }))) as ExtensionResponse;
+      const response = (await chrome.runtime
+        .sendMessage({ type: "ENHANCED_COPY_TEST_DESTINATION", destination })
+        .catch((error) => ({ ok: false, error: error.message }))) as ExtensionResponse;
 
-    if (response.ok) {
-      setAnswer(response.answer || "Destination returned success.");
-      setLastPrompt(response.prompt || "");
-      setStatus("Destination test passed");
-    } else {
-      setLastPrompt(response.prompt || "");
-      setStatus(response.error || "Destination test failed");
+      if (response.ok) {
+        setAnswer(response.answer || "Destination returned success.");
+        setLastPrompt(response.prompt || "");
+        setStatus("Destination test passed");
+      } else {
+        setLastPrompt(response.prompt || "");
+        setStatus(response.error || "Destination test failed");
+      }
+    } finally {
+      setBusy("");
     }
   }
 
@@ -182,38 +200,37 @@ function Popup() {
     setStatus("Prompt copied");
   }
 
+  async function clearRecent() {
+    await clearRecentPrompts();
+    setRecentPrompts([]);
+    setStatus("Recent prompts cleared");
+  }
+
   async function ensurePermission(destination: ExtensionDestination): Promise<boolean> {
-    const pattern = destinationPermissionPattern(destination);
-    if (!pattern) return true;
-
-    const hasPermission = await chrome.permissions.contains({ origins: [pattern] });
-    if (hasPermission) return true;
-
-    const granted = await chrome.permissions.request({ origins: [pattern] });
-    if (!granted) {
-      setStatus(`Permission denied for ${pattern}`);
+    const networkError = validateDestinationNetwork(destination);
+    if (networkError) {
+      setStatus(networkError);
       return false;
     }
-
-    setStatus(`Permission granted for ${pattern}`);
     return true;
   }
 
   function validateDestination(destination: ExtensionDestination): string {
+    const kind = DESTINATION_KINDS.find((item) => item.type === destination.type);
     if (
       (destination.type === "webhook" && !destination.url.trim()) ||
       ((destination.type === "ollama" || destination.type === "openai-compatible") && !destination.baseUrl.trim())
     ) {
       return "API URL required";
     }
-    if ("model" in destination && !destination.model.trim()) return "Model required";
+    if (kind?.needsModel && "model" in destination && !destination.model.trim()) return "Model required";
     if (
       (destination.type === "openai-compatible" || destination.type === "anthropic" || destination.type === "gemini") &&
       !destination.apiKey.trim()
     ) {
       return "API key required";
     }
-    return "";
+    return validateDestinationNetwork(destination);
   }
 
   const currentKind = DESTINATION_KINDS.find((item) => item.type === form.type);
@@ -255,11 +272,16 @@ function Popup() {
         </label>
 
         <div className="cta-row">
-          <button type="button" className="primary" onClick={() => void runSelection("copy")}>
-            Copy Prompt
+          <button type="button" disabled={Boolean(busy)} className="primary" onClick={() => void runSelection("copy")}>
+            {busy === "copy" ? "Copying..." : "Copy Prompt"}
           </button>
-          <button type="button" className="electric" onClick={() => void runSelection("ask")}>
-            Ask Destination
+          <button
+            type="button"
+            className="electric"
+            disabled={selectedDestination.id === CLIPBOARD_DESTINATION_ID || Boolean(busy)}
+            onClick={() => void runSelection("ask")}
+          >
+            {selectedDestination.id === CLIPBOARD_DESTINATION_ID ? "Pick Model First" : busy === "ask" ? "Asking..." : "Ask Model"}
           </button>
         </div>
 
@@ -272,7 +294,9 @@ function Popup() {
         </div>
       </section>
 
-      <details open>
+      <p className="status" role="status">{status}</p>
+
+      <details>
         <summary>Add API destination</summary>
         <label>
           Provider shape
@@ -291,46 +315,44 @@ function Popup() {
           Name
           <input value={form.name} placeholder={`${kindLabel(form.type)} dev key`} onChange={(event) => setForm({ ...form, name: event.currentTarget.value })} />
         </label>
-        <label>
-          API URL
-          <input
-            value={form.apiUrl}
-            placeholder={placeholderUrl(form.type)}
-            onChange={(event) => setForm({ ...form, apiUrl: event.currentTarget.value })}
-          />
-        </label>
-        <label>
-          API key
-          <input
-            value={form.apiKey}
-            type="password"
-            placeholder={currentKind?.needsApiKey ? "Required" : "Optional"}
-            onChange={(event) => setForm({ ...form, apiKey: event.currentTarget.value })}
-          />
-        </label>
-        <label>
-          Model
-          <input
-            value={form.model}
-            placeholder={placeholderModel(form.type)}
-            onChange={(event) => setForm({ ...form, model: event.currentTarget.value })}
-          />
-        </label>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={form.sessionOnly}
-            onChange={(event) => setForm({ ...form, sessionOnly: event.currentTarget.checked })}
-          />
-          Session-only key
-        </label>
-        <p className="warning">BYOK keys stay in this browser. Use scoped keys, not shared root keys.</p>
+        {currentKind?.needsApiUrl ? (
+          <label>
+            {form.type === "webhook" ? "Webhook URL" : "Base URL"}
+            <input
+              value={form.apiUrl}
+              placeholder={placeholderUrl(form.type)}
+              onChange={(event) => setForm({ ...form, apiUrl: event.currentTarget.value })}
+            />
+          </label>
+        ) : null}
+        {(currentKind?.needsApiKey || form.type === "webhook" || form.type === "ollama") ? (
+          <label>
+            API key
+            <input
+              value={form.apiKey}
+              type="password"
+              placeholder={currentKind?.needsApiKey ? "Required for this session" : "Optional, session only"}
+              onChange={(event) => setForm({ ...form, apiKey: event.currentTarget.value })}
+            />
+          </label>
+        ) : null}
+        {currentKind?.needsModel ? (
+          <label>
+            Model
+            <input
+              value={form.model}
+              placeholder={placeholderModel(form.type)}
+              onChange={(event) => setForm({ ...form, model: event.currentTarget.value })}
+            />
+          </label>
+        ) : null}
+        <p className="warning">Tests and model asks can spend tokens. API keys are session-only; re-enter after browser restart.</p>
         <div className="cta-row">
-          <button type="button" onClick={() => void testFormDestination()}>
-            Send test
+          <button type="button" disabled={Boolean(busy)} onClick={() => void testFormDestination()}>
+            {busy === "test" ? "Testing..." : "Send test"}
           </button>
-          <button type="button" className="primary" onClick={() => void saveFormDestination()}>
-            Save destination
+          <button type="button" disabled={Boolean(busy)} className="primary" onClick={() => void saveFormDestination()}>
+            {busy === "save" ? "Saving..." : "Save destination"}
           </button>
         </div>
       </details>
@@ -341,7 +363,7 @@ function Popup() {
           {settings.destinations.map((destination) => (
             <article key={destination.id}>
               <strong>{destination.name}</strong>
-              <span>{kindLabel(destination.type)}{destination.sessionOnly ? " · session key" : ""}</span>
+              <span>{kindLabel(destination.type as DestinationKind)} · session key</span>
               <button type="button" onClick={() => void removeDestination(destination.id)}>
                 Delete
               </button>
@@ -421,7 +443,12 @@ function Popup() {
 
       {recentPrompts.length > 0 ? (
         <section className="recent" aria-label="Recent explicit prompts">
-          <h2>Recent explicit prompts</h2>
+          <div className="section-head">
+            <h2>Recent explicit prompts</h2>
+            <button type="button" onClick={() => void clearRecent()}>
+              Clear
+            </button>
+          </div>
           {recentPrompts.map((text) => (
             <article key={text}>
               <p>{text}</p>
@@ -433,15 +460,8 @@ function Popup() {
         </section>
       ) : null}
 
-      <footer>{status}</footer>
     </main>
   );
-}
-
-async function writeClipboardBestEffort(text: string): Promise<void> {
-  await navigator.clipboard.writeText(text).catch(() => {
-    // Active-tab flows already write from the background when the popup cannot.
-  });
 }
 
 function placeholderUrl(type: DestinationKind): string {
@@ -458,6 +478,11 @@ function placeholderModel(type: DestinationKind): string {
   if (type === "anthropic") return "claude-3-5-sonnet-latest";
   if (type === "gemini") return "gemini-2.5-flash";
   return "optional";
+}
+
+async function getActiveTabId(): Promise<number | undefined> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  return tab?.id;
 }
 
 createRoot(document.getElementById("root")!).render(<Popup />);

@@ -3,13 +3,16 @@ import { renderEnhancedPrompt } from "./templates";
 import type {
   AnthropicDestination,
   ChromeAiDestination,
+  CustomDestination,
   EnhancedCopyDestination,
   EnhancedPromptInput,
   GeminiDestination,
   OllamaDestination,
   OpenAiCompatibleDestination,
+  RenderOptions,
   SendEnhancedPromptInput,
   SendEnhancedPromptResult,
+  SourceContext,
   WebhookDestination
 } from "./types";
 
@@ -45,6 +48,10 @@ export async function sendEnhancedPrompt(input: SendEnhancedPromptInput): Promis
       return { ok: true, destination: destination.type, prompt, responseText };
     }
 
+    if (destination.type === "custom") {
+      return await sendCustom(prompt, input, destination);
+    }
+
     const fetcher = input.fetch || globalThis.fetch;
     if (!fetcher) throw new Error("fetch is unavailable");
 
@@ -66,23 +73,26 @@ export async function sendEnhancedPrompt(input: SendEnhancedPromptInput): Promis
 
     return unreachable(destination, prompt);
   } catch (error) {
+    const typedError = toError(error);
     return {
       ok: false,
       destination: destination.type,
       prompt,
-      error: toError(error)
+      error: typedError,
+      status: errorStatus(typedError),
+      raw: errorRaw(typedError)
     };
   }
 }
 
 export function destinationRequestUrl(destination: EnhancedCopyDestination): string | undefined {
-  if (destination.type === "clipboard" || destination.type === "chrome-ai") return undefined;
+  if (destination.type === "clipboard" || destination.type === "chrome-ai" || destination.type === "custom") return undefined;
   if (destination.type === "webhook") return destination.url;
   if (destination.type === "ollama") return ollamaChatUrl(destination.baseUrl);
   if (destination.type === "openai-compatible") {
     return joinUrl(destination.baseUrl || DEFAULT_OPENAI_BASE_URL, destination.path || "/chat/completions");
   }
-  if (destination.type === "anthropic") return joinUrl(destination.baseUrl || DEFAULT_ANTHROPIC_BASE_URL, "/v1/messages");
+  if (destination.type === "anthropic") return joinUrl(DEFAULT_ANTHROPIC_BASE_URL, "/v1/messages");
   return geminiGenerateUrl(destination);
 }
 
@@ -132,7 +142,10 @@ async function sendOllama(
     ok: true,
     destination: destination.type,
     prompt,
-    responseText: stringAt(response.json, ["message", "content"]) || stringAt(response.json, ["response"]),
+    responseText: requireResponseText(
+      stringAt(response.json, ["message", "content"]) || stringAt(response.json, ["response"]),
+      response.json
+    ),
     raw: response.json,
     status: response.status
   };
@@ -162,10 +175,12 @@ async function sendOpenAiCompatible(
     ok: true,
     destination: destination.type,
     prompt,
-    responseText:
+    responseText: requireResponseText(
       stringAt(response.json, ["choices", 0, "message", "content"]) ||
-      stringAt(response.json, ["output_text"]) ||
-      stringAt(response.json, ["message", "content"]),
+        stringAt(response.json, ["output_text"]) ||
+        stringAt(response.json, ["message", "content"]),
+      response.json
+    ),
     raw: response.json,
     status: response.status
   };
@@ -177,7 +192,7 @@ async function sendAnthropic(
   fetcher: typeof fetch,
   signal?: AbortSignal
 ): Promise<SendEnhancedPromptResult> {
-  const response = await fetchJson(fetcher, joinUrl(destination.baseUrl || DEFAULT_ANTHROPIC_BASE_URL, "/v1/messages"), {
+  const response = await fetchJson(fetcher, joinUrl(DEFAULT_ANTHROPIC_BASE_URL, "/v1/messages"), {
     method: "POST",
     signal,
     headers: {
@@ -197,7 +212,7 @@ async function sendAnthropic(
     ok: true,
     destination: destination.type,
     prompt,
-    responseText: extractAnthropicText(response.json),
+    responseText: requireResponseText(extractAnthropicText(response.json), response.json),
     raw: response.json,
     status: response.status
   };
@@ -225,7 +240,7 @@ async function sendGemini(
     ok: true,
     destination: destination.type,
     prompt,
-    responseText: extractGeminiText(response.json),
+    responseText: requireResponseText(extractGeminiText(response.json), response.json),
     raw: response.json,
     status: response.status
   };
@@ -245,11 +260,7 @@ async function sendWebhook(
       ...(destination.apiKey ? { [destination.authorizationHeader || "Authorization"]: `Bearer ${destination.apiKey}` } : {})
     },
     body: JSON.stringify({
-      action: input.options?.action || "explain",
-      prompt,
-      source: input.source || {},
-      content: input.content,
-      options: input.options || {}
+      ...webhookPayload(input, prompt)
     })
   });
 
@@ -257,12 +268,37 @@ async function sendWebhook(
     ok: true,
     destination: destination.type,
     prompt,
-    responseText:
+    responseText: requireResponseText(
       stringAt(response.json, ["answer"]) ||
-      stringAt(response.json, ["response"]) ||
-      stringAt(response.json, ["text"]) ||
-      stringAt(response.json, ["message", "content"]),
+        stringAt(response.json, ["response"]) ||
+        stringAt(response.json, ["text"]) ||
+        stringAt(response.json, ["message", "content"]),
+      response.json
+    ),
     raw: response.json,
+    status: response.status
+  };
+}
+
+async function sendCustom(
+  prompt: string,
+  input: EnhancedPromptInput & { signal?: AbortSignal },
+  destination: CustomDestination
+): Promise<SendEnhancedPromptResult> {
+  const response = await destination.send({
+    prompt,
+    content: input.content,
+    source: input.source,
+    options: safeRenderOptions(input.options),
+    signal: input.signal
+  });
+
+  return {
+    ok: true,
+    destination: destination.type,
+    prompt,
+    responseText: requireResponseText(response.responseText, response.raw),
+    raw: response.raw,
     status: response.status
   };
 }
@@ -302,9 +338,7 @@ function ollamaChatUrl(baseUrl: string): string {
 }
 
 function geminiGenerateUrl(destination: GeminiDestination): string {
-  return `${trimTrailingSlash(destination.baseUrl || DEFAULT_GEMINI_BASE_URL)}/models/${encodeURIComponent(
-    destination.model
-  )}:generateContent`;
+  return `${trimTrailingSlash(DEFAULT_GEMINI_BASE_URL)}/models/${encodeURIComponent(destination.model)}:generateContent`;
 }
 
 function joinUrl(baseUrl: string, path: string): string {
@@ -353,6 +387,62 @@ function isRecord(value: unknown): value is JsonRecord {
 function toError(error: unknown): Error {
   if (error instanceof Error) return error;
   return new Error(String(error));
+}
+
+function webhookPayload(input: EnhancedPromptInput, prompt: string): JsonRecord {
+  const options = safeRenderOptions(input.options);
+  return {
+    action: options.action || "explain",
+    prompt,
+    source: safeSource(input.source, options),
+    content: limitContent(input.content, options.maxChars || 12_000),
+    options
+  };
+}
+
+function safeRenderOptions(options: RenderOptions = {}): RenderOptions {
+  return {
+    action: options.action,
+    customTask: options.customTask,
+    question: options.question,
+    maxChars: options.maxChars,
+    includeSourceUrl: options.includeSourceUrl,
+    includeTitle: options.includeTitle,
+    includeSafetyNote: options.includeSafetyNote,
+    outputFormat: options.outputFormat
+  };
+}
+
+function safeSource(source: SourceContext = {}, options: RenderOptions): SourceContext {
+  return {
+    ...(options.includeTitle === false ? {} : { title: source.title }),
+    ...(options.includeSourceUrl === false ? {} : { url: source.url }),
+    label: source.label,
+    language: source.language,
+    contentType: source.contentType,
+    metadata: source.metadata
+  };
+}
+
+function limitContent(content: string, maxChars: number): string {
+  const normalized = content.trim();
+  if (normalized.length <= maxChars) return normalized;
+  return normalized.slice(0, maxChars).trimEnd();
+}
+
+function requireResponseText(value: string | undefined, raw: unknown): string {
+  if (value?.trim()) return value;
+  const error = new Error("No text response found in destination response");
+  (error as Error & { raw?: unknown }).raw = raw;
+  throw error;
+}
+
+function errorStatus(error: Error): number | undefined {
+  return (error as Error & { status?: number }).status;
+}
+
+function errorRaw(error: Error): unknown {
+  return (error as Error & { raw?: unknown }).raw;
 }
 
 function unreachable(destination: never, prompt: string): SendEnhancedPromptResult {

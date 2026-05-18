@@ -66,7 +66,6 @@ export type OpenAiCompatibleDestination = DestinationBase & {
 
 export type AnthropicDestination = DestinationBase & {
   type: "anthropic";
-  baseUrl?: string;
   model: string;
   apiKey: string;
   maxTokens?: number;
@@ -75,7 +74,6 @@ export type AnthropicDestination = DestinationBase & {
 
 export type GeminiDestination = DestinationBase & {
   type: "gemini";
-  baseUrl?: string;
   model: string;
   apiKey: string;
 };
@@ -87,6 +85,21 @@ export type WebhookDestination = DestinationBase & {
   authorizationHeader?: string;
 };
 
+export type CustomDestination = DestinationBase & {
+  type: "custom";
+  send: (input: {
+    prompt: string;
+    content: string;
+    source?: SourceContext;
+    options?: RenderOptions;
+    signal?: AbortSignal;
+  }) => Promise<{
+    responseText?: string;
+    raw?: unknown;
+    status?: number;
+  }>;
+};
+
 export type EnhancedCopyDestination =
   | ClipboardDestination
   | ChromeAiDestination
@@ -94,7 +107,8 @@ export type EnhancedCopyDestination =
   | OpenAiCompatibleDestination
   | AnthropicDestination
   | GeminiDestination
-  | WebhookDestination;
+  | WebhookDestination
+  | CustomDestination;
 
 export type SendOptions = {
   destination?: EnhancedCopyDestination;
