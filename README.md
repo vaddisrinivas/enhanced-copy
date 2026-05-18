@@ -4,6 +4,8 @@ Copy infrastructure for the AI era.
 
 Enhanced Copy adds source-aware, task-aware copy actions to docs, repos, blogs, code blocks, issue templates, and social posts. It feels like an **Explain** button, but the output is portable: the user can paste it into ChatGPT, Claude, Cursor, GitHub, Reddit, LinkedIn, Slack, Ollama, or a private model gateway.
 
+**Live demo:** [vaddisrinivas.github.io/enhanced-copy](https://vaddisrinivas.github.io/enhanced-copy/)
+
 [![Enhanced Copy demo video](docs/assets/enhanced-copy-demo-video.gif)](docs/assets/enhanced-copy-demo.mp4)
 
 **Watch the demo video:** [MP4 with voiceover](docs/assets/enhanced-copy-demo.mp4). Generated with [Framecraft](https://github.com/vaddisrinivas/framecraft).
